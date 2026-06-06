@@ -1,0 +1,151 @@
+"use client";
+
+import React from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowRight, MapPin, AlertCircle, TrendingUp, Key } from 'lucide-react';
+
+const trendData = [
+  { year: '2015', score: 60.1 },
+  { year: '2016', score: 62.4 },
+  { year: '2017', score: 64.8 },
+  { year: '2018', score: 63.5 },
+  { year: '2019', score: 66.2 },
+  { year: '2020', score: 68.7 },
+  { year: '2021', score: 67.9 },
+  { year: '2022', score: 71.3 },
+  { year: '2023', score: 74.5 },
+  { year: '2024', score: 76.1 },
+  { year: '2025', score: 72.4 },
+];
+
+export default function OverviewPage() {
+  return (
+    <div className="w-full bg-white font-sans text-gray-900 pb-24">
+      
+      {/* Title Header Section */}
+      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
+        <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight mb-4">Overview: National Condition</h1>
+        <p className="text-lg text-gray-600 max-w-3xl font-medium leading-relaxed">
+          Bagaimana kondisi perumahan Indonesia secara keseluruhan saat ini? 
+          Monitoring indeks nasional dan tren dari tahun ke tahun.
+        </p>
+      </div>
+
+      {/* Main KPI Grid - OECD Style (Seamless borders) */}
+      <div className="border-y border-gray-200 bg-[#F9F9F9]">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            
+            {/* Hero Section: Housing Intelligence Score with Circle */}
+            <div className="p-8 xl:p-12 flex flex-col items-center justify-center bg-white lg:bg-transparent text-center">
+              <h2 className="text-[12px] uppercase tracking-widest font-bold text-primary mb-6">Housing Intelligence Score</h2>
+              <div className="w-48 h-48 rounded-full border-[10px] border-primary flex flex-col items-center justify-center bg-white shadow-sm mb-6 relative">
+                <div className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent border-l-transparent transform rotate-45 opacity-50"></div>
+                <div className="text-5xl font-black text-gray-900 tracking-tighter">72.4</div>
+                <div className="text-[13px] font-bold text-green-600 mt-1">+4.2% YoY</div>
+              </div>
+              <span className="inline-block px-4 py-1.5 bg-yellow-100 text-yellow-800 text-xs font-bold tracking-widest uppercase">
+                Status: Moderate
+              </span>
+            </div>
+
+            {/* Sub KPIs */}
+            {[
+              { title: 'Housing Affordability Index', value: '5.8x', unit: 'Income', trend: 'Ratio price to income', desc: 'Higher ratio means less affordable.' },
+              { title: 'Home Ownership Rate', value: '84.1', unit: '%', trend: 'Percentage of population', desc: 'Households living in their own home.' },
+              { title: 'Housing Backlog', value: '9.9', unit: 'Million Units', trend: 'Estimated shortage', desc: 'Gap between households and adequate homes.' },
+              { title: 'Property Price Growth', value: '+3.2', unit: '%', trend: 'National average growth', desc: 'Annual property price index change.' },
+            ].map((kpi, i) => (
+              <div key={i} className="p-8 xl:p-12 flex flex-col justify-between bg-white hover:bg-gray-50 transition-colors group">
+                <div>
+                  <h3 className="text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-4 group-hover:text-primary transition-colors">{kpi.title}</h3>
+                  <div className="flex items-baseline space-x-1">
+                    <span className="text-4xl font-black text-gray-900 tracking-tight">{kpi.value}</span>
+                    <span className="text-sm text-gray-500 font-semibold">{kpi.unit}</span>
+                  </div>
+                  <p className="text-[12px] font-bold text-gray-400 mt-2">{kpi.trend}</p>
+                </div>
+                <div className="mt-8 pt-4 border-t border-gray-200">
+                  <p className="text-[12px] text-gray-500 font-medium leading-relaxed">{kpi.desc}</p>
+                </div>
+              </div>
+            ))}
+
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Section: Chart & Snapshots */}
+      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16">
+          
+          {/* National Trend Chart */}
+          <div className="lg:col-span-8">
+            <div className="flex justify-between items-end mb-8 border-b-2 border-gray-100 pb-4">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 tracking-tight">National Housing Trend</h3>
+                <p className="text-sm font-medium text-gray-500 mt-1">Perubahan kualitas pasar perumahan (2015–2025)</p>
+              </div>
+              <button className="group flex items-center space-x-2 text-primary font-bold text-[13px] tracking-widest uppercase overflow-hidden">
+                <span className="relative z-10 transition-transform duration-300 group-hover:-translate-x-1">View Full Data</span>
+                <ArrowRight size={16} className="relative z-10 opacity-0 -translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
+              </button>
+            </div>
+            <div className="h-[450px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="year" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} domain={['dataMin - 5', 'dataMax + 5']} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#111827', borderColor: '#111827', borderRadius: '0px', color: '#fff', fontSize: '13px', fontWeight: 600, padding: '12px' }}
+                    itemStyle={{ color: '#fff' }}
+                    cursor={{ stroke: '#E5E7EB', strokeWidth: 2 }}
+                  />
+                  <Line type="monotone" dataKey="score" stroke="#005587" strokeWidth={4} dot={{ r: 5, fill: '#005587', strokeWidth: 0 }} activeDot={{ r: 8, stroke: '#fff', strokeWidth: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Housing Snapshot (Insight Cards) */}
+          <div className="lg:col-span-4 flex flex-col space-y-6">
+            <h3 className="text-2xl font-bold text-gray-900 tracking-tight border-b-2 border-gray-100 pb-4 mb-2">Housing Snapshot</h3>
+            
+            {[
+              { label: 'Most Affordable Province', value: 'Jawa Tengah', icon: MapPin },
+              { label: 'Highest Backlog Province', value: 'Jawa Barat', icon: AlertCircle },
+              { label: 'Fastest Growing Market', value: 'Sulawesi Selatan', icon: TrendingUp },
+              { label: 'Highest Ownership Province', value: 'DI Yogyakarta', icon: Key },
+            ].map((snap, i) => (
+              <div key={i} className="bg-white border border-gray-200 p-6 flex items-center hover:border-primary transition-colors cursor-pointer group">
+                <div className="w-12 h-12 bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors mr-5">
+                  <snap.icon size={24} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">{snap.label}</p>
+                  <p className="text-xl font-bold text-gray-900">{snap.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+        </div>
+      </div>
+
+      {/* Executive Summary */}
+      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 pb-16">
+        <div className="bg-primary text-white p-10 md:p-16 relative overflow-hidden">
+          {/* Decorative Pattern */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 transform rotate-45 -mr-20 -mt-20"></div>
+          
+          <h3 className="text-[12px] uppercase tracking-widest font-bold text-accent mb-4">Executive Summary</h3>
+          <p className="text-2xl md:text-3xl font-light leading-snug max-w-4xl">
+            "Housing affordability improved in <span className="font-bold">18 provinces</span>, while the housing backlog remains heavily concentrated in <span className="font-bold">Java</span>, necessitating targeted policy interventions."
+          </p>
+        </div>
+      </div>
+
+    </div>
+  );
+}

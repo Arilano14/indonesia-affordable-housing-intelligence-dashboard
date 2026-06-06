@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Node
+node_modules/
+.next/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+
+# VSCode
+.vscode/
+
+# Supabase
+.supabase/
+
+# Dataset besar
+datasets/raw/

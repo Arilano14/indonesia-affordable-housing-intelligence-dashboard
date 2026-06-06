@@ -1,0 +1,187 @@
+"use client";
+
+import React from 'react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  LineChart, Line, Legend
+} from 'recharts';
+import { Info, TrendingUp, AlertTriangle, ArrowDownRight } from 'lucide-react';
+
+const regressionData = [
+  { driver: 'Income Level', importance: 42 },
+  { driver: 'Interest Rate', importance: 28 },
+  { driver: 'Inflation', importance: 18 },
+  { driver: 'GDP Growth', importance: 12 },
+];
+
+const economicData = [
+  { year: '2019', gdp: 5.0, inflation: 2.7, interest: 5.0 },
+  { year: '2020', gdp: -2.1, inflation: 1.7, interest: 3.75 },
+  { year: '2021', gdp: 3.7, inflation: 1.9, interest: 3.5 },
+  { year: '2022', gdp: 5.3, inflation: 5.5, interest: 5.5 },
+  { year: '2023', gdp: 5.0, inflation: 2.6, interest: 6.0 },
+  { year: '2024', gdp: 5.1, inflation: 2.5, interest: 6.25 },
+];
+
+const correlationMatrix = [
+  { var: 'Affordability', values: [1.0, 0.82, -0.65, -0.45, 0.35, -0.55] },
+  { var: 'House Price', values: [0.82, 1.0, 0.25, 0.55, 0.45, -0.25] },
+  { var: 'Income', values: [-0.65, 0.25, 1.0, 0.15, 0.65, 0.85] },
+  { var: 'Interest Rate', values: [-0.45, 0.55, 0.15, 1.0, -0.35, -0.45] },
+  { var: 'Inflation', values: [0.35, 0.45, 0.65, -0.35, 1.0, 0.15] },
+  { var: 'Ownership', values: [-0.55, -0.25, 0.85, -0.45, 0.15, 1.0] },
+];
+const headers = ['Affordability', 'Price', 'Income', 'Interest', 'Inflation', 'Ownership'];
+
+// Helper for Correlation Heatmap Color (-1 to 1)
+const getCorrColor = (val: number) => {
+  if (val === 1.0) return 'bg-[#005587] text-white font-bold';
+  if (val > 0.6) return 'bg-[#00B3DF] text-white font-bold';
+  if (val > 0.3) return 'bg-[#BAE6FD] text-[#005587]';
+  if (val > -0.3) return 'bg-[#F3F4F6] text-gray-500';
+  if (val > -0.6) return 'bg-[#FECACA] text-[#DC2626]';
+  return 'bg-[#DC2626] text-white font-bold';
+};
+
+export default function HousingDriversPage() {
+  return (
+    <div className="w-full bg-white font-sans text-gray-900 pb-24">
+      
+      {/* Title Header Section */}
+      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
+        <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight mb-4">Housing Drivers</h1>
+        <p className="text-lg text-gray-600 max-w-3xl font-medium leading-relaxed">
+          Faktor makroekonomi apa yang paling mempengaruhi keterjangkauan rumah? 
+          Analisis korelasi dan regresi untuk mendukung keputusan kebijakan.
+        </p>
+      </div>
+
+      <div className="border-y border-gray-200 bg-[#F9F9F9]">
+        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
+          
+          {/* Driver Interpretation Panel */}
+          <div className="bg-white border border-gray-200 p-8 mb-12 flex items-start space-x-6 relative overflow-hidden">
+            <div className="w-2 bg-primary absolute left-0 top-0 bottom-0"></div>
+            <div className="text-primary mt-1"><Info size={32} /></div>
+            <div>
+              <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500 mb-2">Business Insight</h3>
+              <p className="text-2xl font-bold text-gray-900 leading-snug">
+                "Pertumbuhan pendapatan (<span className="text-primary">Income</span>) menjelaskan <span className="text-primary">62% variansi</span> keterjangkauan perumahan, menjadikannya tuas terpenting mengalahkan suku bunga."
+              </p>
+            </div>
+          </div>
+
+          {/* Driver Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div className="bg-white p-8 border border-gray-200 hover:border-primary transition-colors">
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Strongest Driver</h3>
+                <TrendingUp className="text-[#16A34A]" size={24} />
+              </div>
+              <div className="text-4xl font-black text-gray-900 mb-2">Income Growth</div>
+              <p className="text-sm font-medium text-gray-500">Korelasi r = 0.82 terhadap Ownership</p>
+            </div>
+            
+            <div className="bg-white p-8 border border-gray-200 hover:border-primary transition-colors">
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Weakest Driver</h3>
+                <ArrowDownRight className="text-gray-400" size={24} />
+              </div>
+              <div className="text-4xl font-black text-gray-900 mb-2">Inflation</div>
+              <p className="text-sm font-medium text-gray-500">Dampak sekunder melalui suku bunga</p>
+            </div>
+
+            <div className="bg-white p-8 border border-gray-200 hover:border-primary transition-colors border-t-4 border-t-[#DC2626]">
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Highest Risk Driver</h3>
+                <AlertTriangle className="text-[#DC2626]" size={24} />
+              </div>
+              <div className="text-4xl font-black text-gray-900 mb-2">Interest Rate</div>
+              <p className="text-sm font-medium text-gray-500">Korelasi r = -0.45 terhadap Affordability</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16 mb-16">
+            
+            {/* Correlation Matrix Heatmap */}
+            <div className="lg:col-span-7 bg-white p-8 border border-gray-200 overflow-x-auto">
+              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Macroeconomic Correlation Matrix</h3>
+                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Pearson Correlation Coefficient (r)</p>
+              </div>
+              <table className="w-full text-center border-collapse text-sm">
+                <thead>
+                  <tr>
+                    <th className="p-3 text-left"></th>
+                    {headers.map((h, i) => <th key={i} className="p-3 font-bold text-gray-500 uppercase tracking-widest text-[10px] transform -rotate-45 md:rotate-0 whitespace-nowrap">{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {correlationMatrix.map((row, i) => (
+                    <tr key={i}>
+                      <td className="p-3 font-bold text-gray-600 text-left text-[12px] uppercase tracking-widest border-r border-gray-100">{row.var}</td>
+                      {row.values.map((val, j) => (
+                        <td key={j} className="p-1">
+                          <div className={`w-full h-12 flex items-center justify-center transition-colors hover:ring-2 ring-primary ${getCorrColor(val)}`}>
+                            {val.toFixed(2)}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-6 flex items-center justify-between text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                <div className="flex items-center"><div className="w-4 h-4 bg-[#005587] mr-2"></div> Positive (+1)</div>
+                <div className="flex items-center"><div className="w-4 h-4 bg-[#F3F4F6] mr-2"></div> Neutral (0)</div>
+                <div className="flex items-center"><div className="w-4 h-4 bg-[#DC2626] mr-2"></div> Negative (-1)</div>
+              </div>
+            </div>
+
+            {/* Regression Drivers */}
+            <div className="lg:col-span-5 bg-white p-8 border border-gray-200 flex flex-col">
+              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Feature Importance</h3>
+                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Random Forest Regression Impact (%)</p>
+              </div>
+              <div className="h-[350px] w-full flex-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={regressionData} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} domain={[0, 50]} />
+                    <YAxis dataKey="driver" type="category" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#111827', fontWeight: 600 }} />
+                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} />
+                    <Bar dataKey="importance" fill="#005587" barSize={32} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Economic Context Chart */}
+            <div className="lg:col-span-12 bg-white p-8 border border-gray-200">
+              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Economic Context Overview</h3>
+                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">GDP, Inflation, and BI Rate Trends (%)</p>
+              </div>
+              <div className="h-[400px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={economicData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                    <XAxis dataKey="year" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
+                    <RechartsTooltip contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
+                    <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 600 }} />
+                    <Line type="monotone" dataKey="gdp" name="GDP Growth" stroke="#16A34A" strokeWidth={4} dot={{r:4}} />
+                    <Line type="monotone" dataKey="interest" name="BI Interest Rate" stroke="#005587" strokeWidth={4} dot={{r:4}} />
+                    <Line type="monotone" dataKey="inflation" name="Inflation" stroke="#DC2626" strokeWidth={4} dot={{r:4}} strokeDasharray="5 5" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
