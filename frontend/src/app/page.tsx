@@ -1,24 +1,46 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowRight, MapPin, AlertCircle, TrendingUp, Key } from 'lucide-react';
-
-const trendData = [
-  { year: '2015', score: 60.1 },
-  { year: '2016', score: 62.4 },
-  { year: '2017', score: 64.8 },
-  { year: '2018', score: 63.5 },
-  { year: '2019', score: 66.2 },
-  { year: '2020', score: 68.7 },
-  { year: '2021', score: 67.9 },
-  { year: '2022', score: 71.3 },
-  { year: '2023', score: 74.5 },
-  { year: '2024', score: 76.1 },
-  { year: '2025', score: 72.4 },
-];
+import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
+import { CalculatedKPIs } from '@/lib/kpiEngine';
 
 export default function OverviewPage() {
+  const [trendData, setTrendData] = useState<NationalTrendData[]>([]);
+  const [provinces, setProvinces] = useState<CalculatedKPIs[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [national, provs] = await Promise.all([fetchNationalData(), fetchProvinceData()]);
+        setTrendData(national);
+        setProvinces(provs);
+      } catch (err) {
+        console.error("Failed to load data", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
+  }
+
+  // Calculate National KPIs from the latest trend data
+  const latestNational = trendData[trendData.length - 1] || { HousingScore: 0, AffordabilityRatio: 0, OwnershipRate: 0, HousingBacklog: 0, PropertyPriceIndex: 0 };
+  const prevNational = trendData[trendData.length - 2] || latestNational;
+  const scoreYoY = (((latestNational.HousingScore - prevNational.HousingScore) / prevNational.HousingScore) * 100).toFixed(1);
+
+  // Find snapshots
+  const mostAffordable = [...provinces].sort((a, b) => a.AffordabilityIndex - b.AffordabilityIndex)[0];
+  const highestBacklog = [...provinces].sort((a, b) => b.HousingBacklog - a.HousingBacklog)[0];
+  const fastestGrowing = [...provinces].sort((a, b) => b.PropertyPriceGrowth - a.PropertyPriceGrowth)[0];
+  const highestOwnership = [...provinces].sort((a, b) => b.OwnershipRate - a.OwnershipRate)[0];
+
   return (
     <div className="w-full bg-white font-sans text-gray-900 pb-24">
       
@@ -41,20 +63,20 @@ export default function OverviewPage() {
               <h2 className="text-[12px] uppercase tracking-widest font-bold text-primary mb-6">Housing Intelligence Score</h2>
               <div className="w-48 h-48 rounded-full border-[10px] border-primary flex flex-col items-center justify-center bg-white shadow-sm mb-6 relative">
                 <div className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent border-l-transparent transform rotate-45 opacity-50"></div>
-                <div className="text-5xl font-black text-gray-900 tracking-tighter">72.4</div>
-                <div className="text-[13px] font-bold text-green-600 mt-1">+4.2% YoY</div>
+                <div className="text-5xl font-black text-gray-900 tracking-tighter">{latestNational.HousingScore}</div>
+                <div className="text-[13px] font-bold text-green-600 mt-1">+{scoreYoY}% YoY</div>
               </div>
               <span className="inline-block px-4 py-1.5 bg-yellow-100 text-yellow-800 text-xs font-bold tracking-widest uppercase">
-                Status: Moderate
+                Status: {latestNational.HousingScore >= 60 ? 'Moderate' : 'Warning'}
               </span>
             </div>
 
             {/* Sub KPIs */}
             {[
-              { title: 'Housing Affordability Index', value: '5.8x', unit: 'Income', trend: 'Ratio price to income', desc: 'Higher ratio means less affordable.' },
-              { title: 'Home Ownership Rate', value: '84.1', unit: '%', trend: 'Percentage of population', desc: 'Households living in their own home.' },
-              { title: 'Housing Backlog', value: '9.9', unit: 'Million Units', trend: 'Estimated shortage', desc: 'Gap between households and adequate homes.' },
-              { title: 'Property Price Growth', value: '+3.2', unit: '%', trend: 'National average growth', desc: 'Annual property price index change.' },
+              { title: 'Housing Affordability Index', value: `${latestNational.AffordabilityRatio}x`, unit: 'Income', trend: 'Ratio price to income', desc: 'Higher ratio means less affordable.' },
+              { title: 'Home Ownership Rate', value: `${latestNational.OwnershipRate}`, unit: '%', trend: 'Percentage of population', desc: 'Households living in their own home.' },
+              { title: 'Housing Backlog', value: `${(latestNational.HousingBacklog / 1000000).toFixed(1)}`, unit: 'Million Units', trend: 'Estimated shortage', desc: 'Gap between households and adequate homes.' },
+              { title: 'Property Price Index', value: `${latestNational.PropertyPriceIndex}`, unit: 'Points', trend: 'National average growth', desc: 'Annual property price index.' },
             ].map((kpi, i) => (
               <div key={i} className="p-8 xl:p-12 flex flex-col justify-between bg-white hover:bg-gray-50 transition-colors group">
                 <div>
@@ -84,7 +106,7 @@ export default function OverviewPage() {
             <div className="flex justify-between items-end mb-8 border-b-2 border-gray-100 pb-4">
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 tracking-tight">National Housing Trend</h3>
-                <p className="text-sm font-medium text-gray-500 mt-1">Perubahan kualitas pasar perumahan (2015–2025)</p>
+                <p className="text-sm font-medium text-gray-500 mt-1">Perubahan kualitas pasar perumahan</p>
               </div>
               <button className="group flex items-center space-x-2 text-primary font-bold text-[13px] tracking-widest uppercase overflow-hidden">
                 <span className="relative z-10 transition-transform duration-300 group-hover:-translate-x-1">View Full Data</span>
@@ -95,14 +117,16 @@ export default function OverviewPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="year" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} domain={['dataMin - 5', 'dataMax + 5']} />
+                  <XAxis dataKey="Year" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} dy={10} />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} domain={['dataMin - 5', 'dataMax + 5']} />
+                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#111827', borderColor: '#111827', borderRadius: '0px', color: '#fff', fontSize: '13px', fontWeight: 600, padding: '12px' }}
                     itemStyle={{ color: '#fff' }}
                     cursor={{ stroke: '#E5E7EB', strokeWidth: 2 }}
                   />
-                  <Line type="monotone" dataKey="score" stroke="#005587" strokeWidth={4} dot={{ r: 5, fill: '#005587', strokeWidth: 0 }} activeDot={{ r: 8, stroke: '#fff', strokeWidth: 2 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="HousingScore" name="Housing Score" stroke="#005587" strokeWidth={4} dot={{ r: 5, fill: '#005587', strokeWidth: 0 }} activeDot={{ r: 8, stroke: '#fff', strokeWidth: 2 }} />
+                  <Line yAxisId="right" type="monotone" dataKey="OwnershipRate" name="Ownership %" stroke="#00B3DF" strokeWidth={3} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -113,10 +137,10 @@ export default function OverviewPage() {
             <h3 className="text-2xl font-bold text-gray-900 tracking-tight border-b-2 border-gray-100 pb-4 mb-2">Housing Snapshot</h3>
             
             {[
-              { label: 'Most Affordable Province', value: 'Jawa Tengah', icon: MapPin },
-              { label: 'Highest Backlog Province', value: 'Jawa Barat', icon: AlertCircle },
-              { label: 'Fastest Growing Market', value: 'Sulawesi Selatan', icon: TrendingUp },
-              { label: 'Highest Ownership Province', value: 'DI Yogyakarta', icon: Key },
+              { label: 'Most Affordable Province', value: mostAffordable?.Province || 'N/A', icon: MapPin },
+              { label: 'Highest Backlog Province', value: highestBacklog?.Province || 'N/A', icon: AlertCircle },
+              { label: 'Fastest Growing Market', value: fastestGrowing?.Province || 'N/A', icon: TrendingUp },
+              { label: 'Highest Ownership Province', value: highestOwnership?.Province || 'N/A', icon: Key },
             ].map((snap, i) => (
               <div key={i} className="bg-white border border-gray-200 p-6 flex items-center hover:border-primary transition-colors cursor-pointer group">
                 <div className="w-12 h-12 bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors mr-5">
@@ -141,7 +165,7 @@ export default function OverviewPage() {
           
           <h3 className="text-[12px] uppercase tracking-widest font-bold text-accent mb-4">Executive Summary</h3>
           <p className="text-2xl md:text-3xl font-light leading-snug max-w-4xl">
-            "Housing affordability improved in <span className="font-bold">18 provinces</span>, while the housing backlog remains heavily concentrated in <span className="font-bold">Java</span>, necessitating targeted policy interventions."
+            &quot;Housing affordability remains a challenge, while the housing backlog of {(latestNational.HousingBacklog / 1000000).toFixed(1)} million units remains heavily concentrated, necessitating targeted policy interventions.&quot;
           </p>
         </div>
       </div>

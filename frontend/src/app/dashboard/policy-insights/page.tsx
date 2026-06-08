@@ -1,24 +1,12 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ZAxis, ReferenceLine, PieChart, Pie, Cell
 } from 'recharts';
-import { ArrowRight, ShieldAlert, Zap, TrendingDown, Target } from 'lucide-react';
-
-const priorityMatrixData = [
-  { province: 'DKI Jakarta', affordability: 7.9, backlog: 1.2, status: 'High Priority' },
-  { province: 'Jawa Barat', affordability: 6.4, backlog: 2.1, status: 'High Priority' },
-  { province: 'Banten', affordability: 6.8, backlog: 1.5, status: 'High Priority' },
-  { province: 'Jawa Tengah', affordability: 4.5, backlog: 1.8, status: 'Medium Priority' },
-  { province: 'Jawa Timur', affordability: 5.6, backlog: 1.7, status: 'Medium Priority' },
-  { province: 'Bali', affordability: 10.8, backlog: 0.3, status: 'High Priority' },
-  { province: 'DI Yogyakarta', affordability: 8.4, backlog: 0.4, status: 'Medium Priority' },
-  { province: 'Papua', affordability: 3.5, backlog: 0.8, status: 'Low Priority' },
-  { province: 'Sulawesi Selatan', affordability: 4.5, backlog: 0.6, status: 'Low Priority' },
-];
-
-const priorityTableData = [...priorityMatrixData].sort((a, b) => b.affordability * b.backlog - a.affordability * a.backlog);
+import { ArrowRight, ShieldAlert, Zap, TrendingDown, Target, Info } from 'lucide-react';
+import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
+import { CalculatedKPIs } from '@/lib/kpiEngine';
 
 const simulationData = [
   { policy: 'Lower Mortgage Rate by 1%', cost: 'Medium', impactOwnership: '+6.2%', impactAffordability: '+12.5%', timeframe: 'Short-term' },
@@ -27,14 +15,80 @@ const simulationData = [
   { policy: 'Tax Relief for First-Time Buyers', cost: 'Medium', impactOwnership: '+4.0%', impactAffordability: '+8.0%', timeframe: 'Short-term' },
 ];
 
-// Gauge Chart Data
-const gaugeData = [
-  { name: 'Score', value: 65 },
-  { name: 'Empty', value: 35 },
-];
 const GAUGE_COLORS = ['#D97706', '#E5E7EB']; // Warning Orange
 
 export default function PolicyInsightsPage() {
+  const [provinces, setProvinces] = useState<CalculatedKPIs[]>([]);
+  const [nationalTrend, setNationalTrend] = useState<NationalTrendData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [national, provs] = await Promise.all([fetchNationalData(), fetchProvinceData()]);
+        setNationalTrend(national);
+        setProvinces(provs);
+      } catch (err) {
+        console.error("Failed to load data", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
+  }
+
+  const latestNational = nationalTrend[nationalTrend.length - 1] || { HousingScore: 65 };
+  const gaugeData = [
+    { name: 'Score', value: latestNational.HousingScore },
+    { name: 'Empty', value: 100 - latestNational.HousingScore },
+  ];
+
+  // Build Priority Matrix Data
+  const priorityMatrixData = provinces.map(p => {
+    let status = 'Low Priority';
+    if (p.RiskLevel === 'Critical') status = 'High Priority';
+    else if (p.RiskLevel === 'Warning') status = 'Medium Priority';
+    
+    return {
+      province: p.Province,
+      affordability: p.AffordabilityIndex,
+      backlog: p.HousingBacklog / 1000000,
+      status
+    };
+  });
+
+  const priorityTableData = [...priorityMatrixData].sort((a, b) => b.affordability * b.backlog - a.affordability * a.backlog);
+
+  // Dynamic Rule Engine for Recommendations
+  const rules = [];
+  const avgAffordability = provinces.reduce((sum, p) => sum + p.AffordabilityIndex, 0) / provinces.length;
+  const avgGrowth = provinces.reduce((sum, p) => sum + p.PropertyPriceGrowth, 0) / provinces.length;
+  const totalBacklog = provinces.reduce((sum, p) => sum + p.HousingBacklog, 0);
+  const avgOwnership = provinces.reduce((sum, p) => sum + p.OwnershipRate, 0) / provinces.length;
+  const avgMortgageScore = provinces.reduce((sum, p) => sum + p.MortgageScore, 0) / provinces.length;
+
+  if (avgAffordability > 5.0 && avgGrowth > 2.0) {
+    rules.push({ title: 'Supply Expansion', icon: Target, desc: `Affordability is above 5.0x and growth > 2%. Focus on expanding public housing supply and TOD incentives to cool down the market.`, color: 'text-[#005587]' });
+  }
+  if (totalBacklog > 5000000 && avgOwnership < 80) {
+    rules.push({ title: 'Backlog Reduction', icon: TrendingDown, desc: `Backlog is high (>5M). Prioritize public housing investment and RTLH renovations in high-density provinces.`, color: 'text-[#16A34A]' });
+  }
+  if (avgMortgageScore < 60) {
+    rules.push({ title: 'Mortgage Support', icon: Zap, desc: `Mortgage accessibility is below threshold (60). Expand subsidized mortgage programs (FLPP) and explore alternative credit scoring.`, color: 'text-[#00B3DF]' });
+  }
+  if (avgAffordability > 6.0) {
+    rules.push({ title: 'Price Control', icon: ShieldAlert, desc: `Severe affordability crisis (>6.0x). Implement regulations on idle land and progressive taxes on secondary properties.`, color: 'text-[#DC2626]' });
+  }
+
+  // Ensure we have at least 4 rules to display nicely
+  while (rules.length < 4) {
+    rules.push({ title: 'Monitoring Required', icon: Info, desc: 'Current metrics are stable. Continue monitoring key indicators.', color: 'text-gray-500' });
+  }
+
   return (
     <div className="w-full bg-white font-sans text-gray-900 pb-24">
       
@@ -55,7 +109,7 @@ export default function PolicyInsightsPage() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 transform rotate-45 -mr-20 -mt-20"></div>
             <h3 className="text-[12px] uppercase tracking-widest font-bold text-[#00B3DF] mb-4">Final Executive Recommendation</h3>
             <p className="text-2xl md:text-3xl font-light leading-snug max-w-5xl">
-              "Tantangan perumahan Indonesia kini lebih didorong oleh <span className="font-bold">tekanan keterjangkauan harga</span> di provinsi berkembang pesat, bukan sekadar defisit pasokan absolut. Kebijakan yang difokuskan pada <span className="font-bold border-b-2 border-[#00B3DF]">subsidi akses KPR dan pengendalian spekulasi tanah</span> diproyeksikan memberikan dampak tertinggi."
+              &quot;Tantangan perumahan Indonesia kini lebih didorong oleh <span className="font-bold">tekanan keterjangkauan harga</span> di provinsi berkembang pesat, bukan sekadar defisit pasokan absolut. Kebijakan yang difokuskan pada <span className="font-bold border-b-2 border-[#00B3DF]">subsidi akses KPR dan pengendalian spekulasi tanah</span> diproyeksikan memberikan dampak tertinggi.&quot;
             </p>
           </div>
 
@@ -89,20 +143,17 @@ export default function PolicyInsightsPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute bottom-0 left-0 w-full text-center pb-4">
-                  <div className="text-6xl font-black text-gray-900 tracking-tighter">65</div>
-                  <div className="text-[13px] font-bold text-[#D97706] uppercase tracking-widest mt-1">Moderate Risk</div>
+                  <div className="text-6xl font-black text-gray-900 tracking-tighter">{latestNational.HousingScore}</div>
+                  <div className="text-[13px] font-bold text-[#D97706] uppercase tracking-widest mt-1">
+                    {latestNational.HousingScore >= 80 ? 'Low Risk' : latestNational.HousingScore >= 60 ? 'Moderate Risk' : 'High Risk'}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Recommendation Cards */}
             <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[
-                { title: 'Supply Expansion', icon: Target, desc: 'Fokuskan pembangunan perumahan publik dan insentif TOD di kluster Jawa Barat dan Banten yang memiliki backlog absolut tertinggi.', color: 'text-[#005587]' },
-                { title: 'Mortgage Support', icon: Zap, desc: 'Perluas akses pembiayaan bersubsidi (FLPP) tidak hanya untuk MBR, namun disesuaikan untuk segmentasi menengah di DKI Jakarta & Bali.', color: 'text-[#00B3DF]' },
-                { title: 'Price Control', icon: ShieldAlert, desc: 'Terapkan regulasi pengendalian lahan tidur dan pajak progresif properti sekunder di daerah dengan rasio harga > 8x pendapatan.', color: 'text-[#DC2626]' },
-                { title: 'Backlog Reduction', icon: TrendingDown, desc: 'Prioritaskan program renovasi rumah tidak layak huni (RTLH) di wilayah Indonesia Timur daripada pembangunan unit baru.', color: 'text-[#16A34A]' },
-              ].map((rec, i) => (
+              {rules.slice(0,4).map((rec, i) => (
                 <div key={i} className="bg-white p-8 border border-gray-200 hover:border-gray-300 transition-colors flex flex-col">
                   <div className="flex items-center space-x-3 mb-4">
                     <div className={`p-2 bg-gray-50 rounded-full ${rec.color}`}><rec.icon size={20} /></div>
@@ -129,12 +180,12 @@ export default function PolicyInsightsPage() {
                 <ResponsiveContainer width="100%" height="100%" className="relative z-10">
                   <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                    <XAxis type="number" dataKey="affordability" name="Affordability Ratio" domain={[2, 12]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }}>
+                    <XAxis type="number" dataKey="affordability" name="Affordability Ratio" domain={[0, 12]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }}>
                     </XAxis>
-                    <YAxis type="number" dataKey="backlog" name="Backlog (M Units)" domain={[0, 3]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
+                    <YAxis type="number" dataKey="backlog" name="Backlog (M Units)" domain={[0, 2]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
                     <ZAxis type="category" dataKey="province" name="Province" />
-                    <ReferenceLine x={6} stroke="#9CA3AF" strokeDasharray="5 5" />
-                    <ReferenceLine y={1.0} stroke="#9CA3AF" strokeDasharray="5 5" />
+                    <ReferenceLine x={5} stroke="#9CA3AF" strokeDasharray="5 5" />
+                    <ReferenceLine y={0.5} stroke="#9CA3AF" strokeDasharray="5 5" />
                     <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#00B3DF' }} />
                     <Scatter name="Provinces" data={priorityMatrixData} fill="#005587" shape="circle">
                       {priorityMatrixData.map((entry, index) => (

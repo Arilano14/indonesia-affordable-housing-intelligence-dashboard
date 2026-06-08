@@ -1,12 +1,15 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   LineChart, Line, Legend
 } from 'recharts';
 import { Info, TrendingUp, AlertTriangle, ArrowDownRight } from 'lucide-react';
+import { fetchProvinceData } from '@/lib/dataProvider';
+import { CalculatedKPIs } from '@/lib/kpiEngine';
 
+// Regression Data (Mocked as standard JS doesn't have an RF library)
 const regressionData = [
   { driver: 'Income Level', importance: 42 },
   { driver: 'Interest Rate', importance: 28 },
@@ -14,23 +17,6 @@ const regressionData = [
   { driver: 'GDP Growth', importance: 12 },
 ];
 
-const economicData = [
-  { year: '2019', gdp: 5.0, inflation: 2.7, interest: 5.0 },
-  { year: '2020', gdp: -2.1, inflation: 1.7, interest: 3.75 },
-  { year: '2021', gdp: 3.7, inflation: 1.9, interest: 3.5 },
-  { year: '2022', gdp: 5.3, inflation: 5.5, interest: 5.5 },
-  { year: '2023', gdp: 5.0, inflation: 2.6, interest: 6.0 },
-  { year: '2024', gdp: 5.1, inflation: 2.5, interest: 6.25 },
-];
-
-const correlationMatrix = [
-  { var: 'Affordability', values: [1.0, 0.82, -0.65, -0.45, 0.35, -0.55] },
-  { var: 'House Price', values: [0.82, 1.0, 0.25, 0.55, 0.45, -0.25] },
-  { var: 'Income', values: [-0.65, 0.25, 1.0, 0.15, 0.65, 0.85] },
-  { var: 'Interest Rate', values: [-0.45, 0.55, 0.15, 1.0, -0.35, -0.45] },
-  { var: 'Inflation', values: [0.35, 0.45, 0.65, -0.35, 1.0, 0.15] },
-  { var: 'Ownership', values: [-0.55, -0.25, 0.85, -0.45, 0.15, 1.0] },
-];
 const headers = ['Affordability', 'Price', 'Income', 'Interest', 'Inflation', 'Ownership'];
 
 // Helper for Correlation Heatmap Color (-1 to 1)
@@ -43,7 +29,76 @@ const getCorrColor = (val: number) => {
   return 'bg-[#DC2626] text-white font-bold';
 };
 
+function pearsonCorrelation(x: number[], y: number[]) {
+  const n = x.length;
+  if (n === 0) return 0;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumXY = x.reduce((a, b, i) => a + (b * y[i]), 0);
+  const sumX2 = x.reduce((a, b) => a + (b * b), 0);
+  const sumY2 = y.reduce((a, b) => a + (b * b), 0);
+  
+  const num = (n * sumXY) - (sumX * sumY);
+  const den = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+  if (den === 0) return 0;
+  return num / den;
+}
+
 export default function HousingDriversPage() {
+  const [provinces, setProvinces] = useState<CalculatedKPIs[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const provs = await fetchProvinceData();
+        setProvinces(provs);
+      } catch (err) {
+        console.error("Failed to load data", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
+  }
+
+  // Build Dynamic Correlation Matrix
+  const varGetters = [
+    (p: CalculatedKPIs) => p.AffordabilityIndex,
+    (p: CalculatedKPIs) => p.AverageHousePrice,
+    (p: CalculatedKPIs) => p.AnnualHouseholdIncome,
+    (p: CalculatedKPIs) => p.InterestRate,
+    (p: CalculatedKPIs) => p.InflationRate,
+    (p: CalculatedKPIs) => p.OwnershipRate,
+  ];
+
+  const correlationMatrix = headers.map((rowName, i) => {
+    const xVals = provinces.map(varGetters[i]);
+    const values = headers.map((_, j) => {
+      const yVals = provinces.map(varGetters[j]);
+      return pearsonCorrelation(xVals, yVals);
+    });
+    return { var: rowName, values };
+  });
+
+  // Calculate Average Economic Indicators over Provinces as mock for economicData chart
+  // In a real app this would come from national time-series data
+  const avgInterest = (provinces.reduce((sum, p) => sum + p.InterestRate, 0) / provinces.length).toFixed(1);
+  
+  // Create an economic mock sequence that converges to current averages
+  const economicData = [
+    { year: '2020', gdp: 5.0, inflation: 2.7, interest: 5.0 },
+    { year: '2021', gdp: -2.1, inflation: 1.7, interest: 3.75 },
+    { year: '2022', gdp: 3.7, inflation: 1.9, interest: 3.5 },
+    { year: '2023', gdp: 5.3, inflation: 5.5, interest: 5.5 },
+    { year: '2024', gdp: 5.0, inflation: 2.6, interest: 6.0 },
+    { year: '2025', gdp: 5.1, inflation: 2.5, interest: Number(avgInterest) },
+  ];
+
   return (
     <div className="w-full bg-white font-sans text-gray-900 pb-24">
       
@@ -66,7 +121,7 @@ export default function HousingDriversPage() {
             <div>
               <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500 mb-2">Business Insight</h3>
               <p className="text-2xl font-bold text-gray-900 leading-snug">
-                "Pertumbuhan pendapatan (<span className="text-primary">Income</span>) menjelaskan <span className="text-primary">62% variansi</span> keterjangkauan perumahan, menjadikannya tuas terpenting mengalahkan suku bunga."
+                &quot;Pertumbuhan pendapatan (<span className="text-primary">Income</span>) menjelaskan <span className="text-primary">62% variansi</span> keterjangkauan perumahan, menjadikannya tuas terpenting mengalahkan suku bunga.&quot;
               </p>
             </div>
           </div>
@@ -79,7 +134,7 @@ export default function HousingDriversPage() {
                 <TrendingUp className="text-[#16A34A]" size={24} />
               </div>
               <div className="text-4xl font-black text-gray-900 mb-2">Income Growth</div>
-              <p className="text-sm font-medium text-gray-500">Korelasi r = 0.82 terhadap Ownership</p>
+              <p className="text-sm font-medium text-gray-500">Korelasi r = {correlationMatrix[2].values[5].toFixed(2)} terhadap Ownership</p>
             </div>
             
             <div className="bg-white p-8 border border-gray-200 hover:border-primary transition-colors">
@@ -97,7 +152,7 @@ export default function HousingDriversPage() {
                 <AlertTriangle className="text-[#DC2626]" size={24} />
               </div>
               <div className="text-4xl font-black text-gray-900 mb-2">Interest Rate</div>
-              <p className="text-sm font-medium text-gray-500">Korelasi r = -0.45 terhadap Affordability</p>
+              <p className="text-sm font-medium text-gray-500">Korelasi r = {correlationMatrix[3].values[0].toFixed(2)} terhadap Affordability</p>
             </div>
           </div>
 

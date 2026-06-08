@@ -1,54 +1,59 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ZAxis,
-  LineChart, Line, BarChart, Bar, ComposedChart, Legend
+  LineChart, Line, BarChart, Bar, ComposedChart, Legend, Cell
 } from 'recharts';
 import { ArrowRight, Info } from 'lucide-react';
-
-const scatterData = [
-  { province: 'DKI Jakarta', income: 120, price: 950, affordability: 7.9 },
-  { province: 'Jawa Barat', income: 65, price: 420, affordability: 6.4 },
-  { province: 'Banten', income: 70, price: 480, affordability: 6.8 },
-  { province: 'DI Yogyakarta', income: 45, price: 380, affordability: 8.4 },
-  { province: 'Jawa Timur', income: 55, price: 310, affordability: 5.6 },
-  { province: 'Jawa Tengah', income: 40, price: 180, affordability: 4.5 },
-  { province: 'Bali', income: 60, price: 650, affordability: 10.8 },
-  { province: 'Sumatera Utara', income: 50, price: 250, affordability: 5.0 },
-  { province: 'Sulawesi Selatan', income: 48, price: 220, affordability: 4.5 },
-  { province: 'Kalimantan Timur', income: 85, price: 400, affordability: 4.7 },
-];
-
-const trendData = [
-  { year: '2015', index: 100 }, { year: '2016', index: 104 }, { year: '2017', index: 109 },
-  { year: '2018', index: 112 }, { year: '2019', index: 116 }, { year: '2020', index: 118 },
-  { year: '2021', index: 120 }, { year: '2022', index: 126 }, { year: '2023', index: 131 },
-  { year: '2024', index: 135 }, { year: '2025', index: 139 },
-];
-
-const growthData = [
-  { quarter: 'Q1 24', growth: 1.2 }, { quarter: 'Q2 24', growth: 1.5 },
-  { quarter: 'Q3 24', growth: 0.8 }, { quarter: 'Q4 24', growth: 2.1 },
-  { quarter: 'Q1 25', growth: 1.8 }, { quarter: 'Q2 25', growth: 1.4 },
-];
-
-const supplyDemandData = [
-  { year: '2019', demand: 850, supply: 620 },
-  { year: '2020', demand: 880, supply: 550 },
-  { year: '2021', demand: 910, supply: 590 },
-  { year: '2022', demand: 940, supply: 710 },
-  { year: '2023', demand: 980, supply: 750 },
-  { year: '2024', demand: 1020, supply: 810 },
-  { year: '2025', demand: 1080, supply: 840 },
-];
+import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
+import { CalculatedKPIs } from '@/lib/kpiEngine';
 
 export default function HousingMarketPage() {
-  const [sortField, setSortField] = useState('affordability');
+  const [sortField, setSortField] = useState('AffordabilityIndex');
+  const [trendData, setTrendData] = useState<NationalTrendData[]>([]);
+  const [provinces, setProvinces] = useState<CalculatedKPIs[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sortedTableData = [...scatterData].sort((a, b) => {
-    return b[sortField as keyof typeof b] > a[sortField as keyof typeof a] ? 1 : -1;
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [national, provs] = await Promise.all([fetchNationalData(), fetchProvinceData()]);
+        setTrendData(national);
+        setProvinces(provs);
+      } catch (err) {
+        console.error("Failed to load data", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
+  }
+
+  // Scatter Data
+  const scatterData = provinces.map(p => ({
+    province: p.Province,
+    income: p.AnnualHouseholdIncome / 1000000,
+    price: p.AverageHousePrice / 1000000,
+    affordability: p.AffordabilityIndex,
+    population: p.Population
+  }));
+
+  // Growth Data (Sort by growth desc)
+  const growthData = [...provinces].sort((a, b) => b.PropertyPriceGrowth - a.PropertyPriceGrowth).map(p => ({
+    province: p.Province,
+    growth: p.PropertyPriceGrowth
+  }));
+
+  const sortedTableData = [...provinces].sort((a, b) => {
+    return (b[sortField as keyof typeof b] as number) > (a[sortField as keyof typeof a] as number) ? 1 : -1;
   });
+
+  const topAffordability = [...provinces].sort((a, b) => b.AffordabilityIndex - a.AffordabilityIndex)[0];
 
   return (
     <div className="w-full bg-white font-sans text-gray-900 pb-24">
@@ -72,7 +77,7 @@ export default function HousingMarketPage() {
             </div>
             <h3 className="text-[12px] uppercase tracking-widest font-bold text-accent mb-3">Key Insight</h3>
             <p className="text-2xl font-light leading-snug max-w-4xl">
-              "Kesenjangan keterjangkauan ekstrem di <span className="font-bold">Bali (10.8x)</span> dan <span className="font-bold">DI Yogyakarta (8.4x)</span> didorong oleh tingginya harga properti yang tidak seimbang dengan UMP regional, jauh melampaui DKI Jakarta."
+              &quot;Kesenjangan keterjangkauan ekstrem di <span className="font-bold">{topAffordability?.Province} ({topAffordability?.AffordabilityIndex}x)</span> didorong oleh tingginya harga properti yang tidak seimbang dengan pendapatan regional.&quot;
             </p>
           </div>
 
@@ -103,19 +108,19 @@ export default function HousingMarketPage() {
             <div className="bg-white p-8 border border-gray-200">
               <div className="mb-8 border-b-2 border-gray-100 pb-4">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Housing Demand vs Supply</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">National Volume ('000 Units)</p>
+                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">National Volume</p>
               </div>
               <div className="h-[400px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={supplyDemandData} margin={{ top: 20, right: 20, bottom: 5, left: -20 }}>
+                  <ComposedChart data={trendData} margin={{ top: 20, right: 20, bottom: 5, left: -20 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                    <XAxis dataKey="year" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10}/>
+                    <XAxis dataKey="Year" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10}/>
                     <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
                     <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
                     <RechartsTooltip contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
                     <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 600 }} />
-                    <Bar yAxisId="left" dataKey="supply" name="New Supply" fill="#00B3DF" barSize={32} />
-                    <Line yAxisId="right" type="monotone" dataKey="demand" name="Market Demand" stroke="#005587" strokeWidth={4} dot={{ r: 4 }} />
+                    <Bar yAxisId="left" dataKey="Supply" name="New Supply" fill="#00B3DF" barSize={32} />
+                    <Line yAxisId="right" type="monotone" dataKey="Demand" name="Market Demand" stroke="#005587" strokeWidth={4} dot={{ r: 4 }} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -131,10 +136,10 @@ export default function HousingMarketPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                    <XAxis dataKey="year" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10} />
+                    <XAxis dataKey="Year" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10} />
                     <YAxis domain={['dataMin - 10', 'dataMax + 10']} axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
                     <RechartsTooltip contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
-                    <Line type="monotone" dataKey="index" stroke="#D97706" strokeWidth={4} dot={false} activeDot={{ r: 8 }} />
+                    <Line type="monotone" dataKey="PropertyPriceIndex" name="RPPI" stroke="#D97706" strokeWidth={4} dot={false} activeDot={{ r: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -143,17 +148,17 @@ export default function HousingMarketPage() {
             {/* Column Chart */}
             <div className="bg-white p-8 border border-gray-200">
               <div className="mb-8 border-b-2 border-gray-100 pb-4">
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Quarterly Property Growth</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">% Growth (QoQ)</p>
+                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Property Price Growth</h3>
+                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Growth by Province (%)</p>
               </div>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={growthData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                    <XAxis dataKey="quarter" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
+                  <BarChart data={growthData.slice(0, 8)} margin={{ top: 10, right: 20, bottom: 5, left: -20 }} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
+                    <XAxis type="number" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
+                    <YAxis dataKey="province" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} width={120}/>
                     <RechartsTooltip cursor={{fill: '#F9FAFB'}} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
-                    <Bar dataKey="growth" fill="#16A34A" barSize={40} />
+                    <Bar dataKey="growth" name="Growth %" fill="#16A34A" barSize={20} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -165,8 +170,8 @@ export default function HousingMarketPage() {
           <div className="bg-white border border-gray-200 overflow-hidden">
             <div className="p-8 border-b-2 border-gray-100 flex justify-between items-end">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Affordability Ranking</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Ratio House Price to Annual Income</p>
+                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Market Ranking</h3>
+                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Benchmark per Province</p>
               </div>
               <button className="group flex items-center space-x-2 text-primary font-bold text-[13px] tracking-widest uppercase overflow-hidden">
                 <span className="relative z-10 transition-transform duration-300 group-hover:-translate-x-1">Download CSV</span>
@@ -179,24 +184,26 @@ export default function HousingMarketPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest">Rank</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('province')}>Province</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('price')}>Avg Price (Rp Juta)</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('income')}>Annual Income (Rp Juta)</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('affordability')}>Affordability Index (x)</th>
+                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('Province')}>Province</th>
+                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('AverageHousePrice')}>Avg Price (Rp Juta)</th>
+                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('AnnualHouseholdIncome')}>Annual Income (Rp Juta)</th>
+                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('AffordabilityIndex')}>Affordability Index (x)</th>
+                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('PropertyPriceGrowth')}>Growth (%)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {sortedTableData.map((row, idx) => (
                     <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
                       <td className="py-4 px-8 font-bold text-gray-900">{idx + 1}</td>
-                      <td className="py-4 px-8 font-bold text-primary">{row.province}</td>
-                      <td className="py-4 px-8 text-gray-600 font-medium">{row.price}</td>
-                      <td className="py-4 px-8 text-gray-600 font-medium">{row.income}</td>
+                      <td className="py-4 px-8 font-bold text-primary">{row.Province}</td>
+                      <td className="py-4 px-8 text-gray-600 font-medium">{(row.AverageHousePrice/1000000).toFixed(0)}</td>
+                      <td className="py-4 px-8 text-gray-600 font-medium">{(row.AnnualHouseholdIncome/1000000).toFixed(0)}</td>
                       <td className="py-4 px-8">
-                        <span className={`inline-flex items-center justify-center px-3 py-1 font-bold text-xs ${row.affordability > 6 ? 'bg-red-100 text-red-700' : row.affordability > 5 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                          {row.affordability}x
+                        <span className={`inline-flex items-center justify-center px-3 py-1 font-bold text-xs ${row.AffordabilityIndex > 6 ? 'bg-red-100 text-red-700' : row.AffordabilityIndex > 5 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                          {row.AffordabilityIndex}x
                         </span>
                       </td>
+                      <td className="py-4 px-8 text-gray-600 font-medium">{row.PropertyPriceGrowth}%</td>
                     </tr>
                   ))}
                 </tbody>
