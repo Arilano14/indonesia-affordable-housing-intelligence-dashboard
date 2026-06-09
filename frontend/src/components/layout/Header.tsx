@@ -142,11 +142,6 @@ export function Header() {
             </div>
           </div>
           
-          <button className="group flex items-center justify-center space-x-2 bg-primary text-white px-8 py-3.5 font-bold text-[13px] uppercase tracking-widest overflow-hidden relative">
-            <span className="relative z-10 transition-transform duration-300 group-hover:-translate-x-1">Export Report</span>
-            <ArrowRight size={16} className="relative z-10 opacity-0 -translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
-            <div className="absolute inset-0 bg-[#003B5C] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0"></div>
-          </button>
         </div>
       </div>
 

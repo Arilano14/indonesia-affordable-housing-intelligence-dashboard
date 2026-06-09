@@ -26,4 +26,6 @@ app.add_middleware(
 def read_root():
     return {"status": "ok", "message": "IAHID API is running"}
 
-# TODO: Include routers from app/api
+from app.api.etl import router as etl_router
+
+app.include_router(etl_router)
