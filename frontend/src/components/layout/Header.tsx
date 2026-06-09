@@ -25,8 +25,6 @@ const GROUPS = [
   { label: "S - Z", regex: /^[S-Z]/i }
 ];
 
-const YEARS = ["2026", "2025", "2024"];
-
 const NAV_ITEMS = [
   { name: 'Overview', path: '/' },
   { name: 'Housing Market', path: '/dashboard/housing-market' },
@@ -39,9 +37,7 @@ const NAV_ITEMS = [
 export function Header() {
   const pathname = usePathname();
   const [regionOpen, setRegionOpen] = useState(false);
-  const [yearOpen, setYearOpen] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState("All Provinces");
-  const [selectedYear, setSelectedYear] = useState("2026");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Mega menu state
@@ -49,7 +45,6 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const regionRef = useRef<HTMLDivElement>(null);
-  const yearRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -57,7 +52,6 @@ export function Header() {
       // Use headerRef to keep mega menu open if clicked inside it
       if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
         setRegionOpen(false);
-        setYearOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -94,7 +88,7 @@ export function Header() {
           </button>
         </div>
         
-        <div className={`flex flex-col md:flex-row items-stretch md:items-center w-full md:w-auto mt-6 md:mt-0 space-y-6 md:space-y-0 md:space-x-8 lg:space-x-10 text-sm ${mobileMenuOpen ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`flex flex-col md:flex-row items-stretch md:items-center w-full md:w-auto mt-6 md:mt-0 space-y-6 md:space-y-0 text-sm ${mobileMenuOpen ? 'flex' : 'hidden md:flex'}`}>
           
           {/* Mega Menu Trigger */}
           <div className="relative flex flex-col z-20">
@@ -103,43 +97,12 @@ export function Header() {
               onClick={(e) => { 
                 e.stopPropagation(); 
                 setRegionOpen(!regionOpen); 
-                setYearOpen(false); 
               }}
               className={`flex items-center justify-between min-w-[200px] bg-transparent text-gray-900 font-bold focus:outline-none cursor-pointer border-b-2 hover:border-primary transition-colors pb-1 group ${regionOpen ? 'border-primary' : 'border-gray-200'}`}
             >
               <span className="truncate max-w-[180px] text-left">{selectedRegion}</span>
               <ChevronDown size={16} className={`text-gray-400 transition-transform duration-300 ${regionOpen ? 'rotate-180 text-primary' : ''}`} />
             </button>
-          </div>
-
-          {/* Custom Year Dropdown */}
-          <div className="relative flex flex-col z-10" ref={yearRef}>
-            <span className="text-gray-400 text-[10px] uppercase tracking-widest font-bold mb-1 flex items-center gap-1"><Calendar size={12}/> Year</span>
-            <button 
-              onClick={(e) => { 
-                e.stopPropagation();
-                setYearOpen(!yearOpen); 
-                setRegionOpen(false); 
-              }}
-              className={`flex items-center justify-between min-w-[100px] bg-transparent text-gray-900 font-bold focus:outline-none cursor-pointer border-b-2 hover:border-primary transition-colors pb-1 group ${yearOpen ? 'border-primary' : 'border-gray-200'}`}
-            >
-              <span>{selectedYear}</span>
-              <ChevronDown size={16} className={`text-gray-400 transition-transform duration-300 ${yearOpen ? 'rotate-180 text-primary' : ''}`} />
-            </button>
-            {/* Year Dropdown Menu */}
-            <div className={`absolute top-[120%] left-0 w-full bg-white border border-gray-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] origin-top transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${yearOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
-              <div className="py-2 flex flex-col">
-                {YEARS.map(yr => (
-                  <button 
-                    key={yr} 
-                    onClick={() => { setSelectedYear(yr); setYearOpen(false); }}
-                    className={`px-5 py-2.5 text-left text-[13px] font-bold tracking-wide transition-colors ${selectedYear === yr ? 'text-primary bg-blue-50/50' : 'text-gray-600 hover:bg-gray-50 hover:text-primary'}`}
-                  >
-                    {yr}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
           
         </div>
@@ -166,8 +129,8 @@ export function Header() {
 
       {/* Global Dimmer Overlay */}
       <div 
-        className={`absolute top-full left-0 w-full h-[100vh] bg-[#001730]/40 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${regionOpen || yearOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none hidden'}`}
-        onClick={() => { setRegionOpen(false); setYearOpen(false); }}
+        className={`absolute top-full left-0 w-full h-[100vh] bg-[#001730]/40 backdrop-blur-sm transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${regionOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none hidden'}`}
+        onClick={() => { setRegionOpen(false); }}
         style={{ zIndex: 40 }}
       />
 

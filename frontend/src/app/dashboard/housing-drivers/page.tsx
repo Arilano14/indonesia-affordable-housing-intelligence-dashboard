@@ -11,13 +11,13 @@ import { CalculatedKPIs } from '@/lib/kpiEngine';
 
 // Regression Data (Mocked as standard JS doesn't have an RF library)
 const regressionData = [
-  { driver: 'Income Level', importance: 42 },
-  { driver: 'Interest Rate', importance: 28 },
-  { driver: 'Inflation', importance: 18 },
-  { driver: 'GDP Growth', importance: 12 },
+  { driver: 'Poverty Rate', importance: 42 },
+  { driver: 'GDP Per Capita', importance: 28 },
+  { driver: 'Supply Index', importance: 18 },
+  { driver: 'Demand Index', importance: 12 },
 ];
 
-const headers = ['Affordability', 'Price', 'Income', 'Interest', 'Inflation', 'Ownership'];
+const headers = ['Access', 'Demand', 'Supply', 'GDP/Cap', 'Poverty', 'Ownership'];
 
 // Helper for Correlation Heatmap Color (-1 to 1)
 const getCorrColor = (val: number) => {
@@ -68,11 +68,11 @@ export default function HousingDriversPage() {
 
   // Build Dynamic Correlation Matrix
   const varGetters = [
-    (p: CalculatedKPIs) => p.AffordabilityIndex,
-    (p: CalculatedKPIs) => p.AverageHousePrice,
-    (p: CalculatedKPIs) => p.AnnualHouseholdIncome,
-    (p: CalculatedKPIs) => p.InterestRate,
-    (p: CalculatedKPIs) => p.InflationRate,
+    (p: CalculatedKPIs) => p.AccessibilityIndex,
+    (p: CalculatedKPIs) => p.DemandIndex,
+    (p: CalculatedKPIs) => p.SupplyIndex,
+    (p: CalculatedKPIs) => p.GDPPerCapita,
+    (p: CalculatedKPIs) => p.PovertyRate,
     (p: CalculatedKPIs) => p.OwnershipRate,
   ];
 
@@ -87,27 +87,26 @@ export default function HousingDriversPage() {
 
   // Calculate Average Economic Indicators over Provinces as mock for economicData chart
   // In a real app this would come from national time-series data
-  const avgInterest = (provinces.reduce((sum, p) => sum + p.InterestRate, 0) / provinces.length).toFixed(1);
+  const avgPoverty = (provinces.reduce((sum, p) => sum + p.PovertyRate, 0) / provinces.length).toFixed(1);
   
   // Create an economic mock sequence that converges to current averages
   const economicData = [
-    { year: '2020', gdp: 5.0, inflation: 2.7, interest: 5.0 },
-    { year: '2021', gdp: -2.1, inflation: 1.7, interest: 3.75 },
-    { year: '2022', gdp: 3.7, inflation: 1.9, interest: 3.5 },
-    { year: '2023', gdp: 5.3, inflation: 5.5, interest: 5.5 },
-    { year: '2024', gdp: 5.0, inflation: 2.6, interest: 6.0 },
-    { year: '2025', gdp: 5.1, inflation: 2.5, interest: Number(avgInterest) },
+    { year: '2020', gdp: 5.0, poverty: 10.1, ownership: 80.0 },
+    { year: '2021', gdp: -2.1, poverty: 9.7, ownership: 81.1 },
+    { year: '2022', gdp: 3.7, poverty: 9.5, ownership: 82.5 },
+    { year: '2023', gdp: 5.3, poverty: 9.3, ownership: 83.0 },
+    { year: '2024', gdp: 5.0, poverty: Number(avgPoverty), ownership: 84.0 },
   ];
 
   return (
-    <div className="w-full bg-white font-sans text-gray-900 pb-24">
+    <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
       
       {/* Title Header Section */}
       <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
         <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight mb-4">Housing Drivers</h1>
         <p className="text-lg text-gray-600 max-w-3xl font-medium leading-relaxed">
-          Faktor makroekonomi apa yang paling mempengaruhi keterjangkauan rumah? 
-          Analisis korelasi dan regresi untuk mendukung keputusan kebijakan.
+          Faktor makroekonomi apa yang paling mempengaruhi aksesibilitas rumah? 
+          Analisis korelasi dan regresi tingkat kemiskinan, PDRB, suplai, dan permintaan.
         </p>
       </div>
 
@@ -121,7 +120,7 @@ export default function HousingDriversPage() {
             <div>
               <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500 mb-2">Business Insight</h3>
               <p className="text-2xl font-bold text-gray-900 leading-snug">
-                &quot;Pertumbuhan pendapatan (<span className="text-primary">Income</span>) menjelaskan <span className="text-primary">62% variansi</span> keterjangkauan perumahan, menjadikannya tuas terpenting mengalahkan suku bunga.&quot;
+                &quot;Pertumbuhan PDRB per Kapita (<span className="text-primary">GDP/Cap</span>) memiliki korelasi positif yang kuat terhadap suplai perumahan formal, sementara <span className="text-primary">Tingkat Kemiskinan</span> secara langsung membatasi aksesibilitas.&quot;
               </p>
             </div>
           </div>
@@ -130,29 +129,29 @@ export default function HousingDriversPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             <div className="bg-white p-8 border border-gray-200 hover:border-primary transition-colors">
               <div className="flex justify-between items-start mb-6">
-                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Strongest Driver</h3>
+                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Strongest Positive Driver</h3>
                 <TrendingUp className="text-[#16A34A]" size={24} />
               </div>
-              <div className="text-4xl font-black text-gray-900 mb-2">Income Growth</div>
-              <p className="text-sm font-medium text-gray-500">Korelasi r = {correlationMatrix[2].values[5].toFixed(2)} terhadap Ownership</p>
+              <div className="text-4xl font-black text-gray-900 mb-2">GDP Per Capita</div>
+              <p className="text-sm font-medium text-gray-500">Korelasi r = {correlationMatrix[3].values[2].toFixed(2)} terhadap Supply</p>
             </div>
             
-            <div className="bg-white p-8 border border-gray-200 hover:border-primary transition-colors">
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Weakest Driver</h3>
-                <ArrowDownRight className="text-gray-400" size={24} />
-              </div>
-              <div className="text-4xl font-black text-gray-900 mb-2">Inflation</div>
-              <p className="text-sm font-medium text-gray-500">Dampak sekunder melalui suku bunga</p>
-            </div>
-
             <div className="bg-white p-8 border border-gray-200 hover:border-primary transition-colors border-t-4 border-t-[#DC2626]">
               <div className="flex justify-between items-start mb-6">
-                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Highest Risk Driver</h3>
-                <AlertTriangle className="text-[#DC2626]" size={24} />
+                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Strongest Negative Driver</h3>
+                <ArrowDownRight className="text-[#DC2626]" size={24} />
               </div>
-              <div className="text-4xl font-black text-gray-900 mb-2">Interest Rate</div>
-              <p className="text-sm font-medium text-gray-500">Korelasi r = {correlationMatrix[3].values[0].toFixed(2)} terhadap Affordability</p>
+              <div className="text-4xl font-black text-gray-900 mb-2">Poverty Rate</div>
+              <p className="text-sm font-medium text-gray-500">Korelasi r = {correlationMatrix[4].values[0].toFixed(2)} terhadap Access</p>
+            </div>
+
+            <div className="bg-white p-8 border border-gray-200 hover:border-primary transition-colors">
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500">Highest Impact Indicator</h3>
+                <AlertTriangle className="text-[#D97706]" size={24} />
+              </div>
+              <div className="text-4xl font-black text-gray-900 mb-2">Supply Index</div>
+              <p className="text-sm font-medium text-gray-500">Korelasi r = {correlationMatrix[2].values[5].toFixed(2)} terhadap Ownership</p>
             </div>
           </div>
 
@@ -199,7 +198,7 @@ export default function HousingDriversPage() {
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Feature Importance</h3>
                 <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Random Forest Regression Impact (%)</p>
               </div>
-              <div className="h-[350px] w-full flex-1">
+              <div className="relative w-full h-[350px] flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={regressionData} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
@@ -216,9 +215,9 @@ export default function HousingDriversPage() {
             <div className="lg:col-span-12 bg-white p-8 border border-gray-200">
               <div className="mb-8 border-b-2 border-gray-100 pb-4">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Economic Context Overview</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">GDP, Inflation, and BI Rate Trends (%)</p>
+                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">GDP, Poverty, and Ownership Trends (%)</p>
               </div>
-              <div className="h-[400px] w-full">
+              <div className="relative w-full h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={economicData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
@@ -227,8 +226,8 @@ export default function HousingDriversPage() {
                     <RechartsTooltip contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
                     <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 600 }} />
                     <Line type="monotone" dataKey="gdp" name="GDP Growth" stroke="#16A34A" strokeWidth={4} dot={{r:4}} />
-                    <Line type="monotone" dataKey="interest" name="BI Interest Rate" stroke="#005587" strokeWidth={4} dot={{r:4}} />
-                    <Line type="monotone" dataKey="inflation" name="Inflation" stroke="#DC2626" strokeWidth={4} dot={{r:4}} strokeDasharray="5 5" />
+                    <Line type="monotone" dataKey="ownership" name="Ownership Rate" stroke="#005587" strokeWidth={4} dot={{r:4}} />
+                    <Line type="monotone" dataKey="poverty" name="Poverty Rate" stroke="#DC2626" strokeWidth={4} dot={{r:4}} strokeDasharray="5 5" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

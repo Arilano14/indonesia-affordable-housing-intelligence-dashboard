@@ -9,10 +9,10 @@ import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/d
 import { CalculatedKPIs } from '@/lib/kpiEngine';
 
 const simulationData = [
-  { policy: 'Lower Mortgage Rate by 1%', cost: 'Medium', impactOwnership: '+6.2%', impactAffordability: '+12.5%', timeframe: 'Short-term' },
-  { policy: 'Subsidized Land Bank for Developers', cost: 'High', impactOwnership: '+2.1%', impactAffordability: '+18.0%', timeframe: 'Long-term' },
-  { policy: 'Expand Public Housing Supply', cost: 'Very High', impactOwnership: '+8.5%', impactAffordability: '+5.0%', timeframe: 'Long-term' },
-  { policy: 'Tax Relief for First-Time Buyers', cost: 'Medium', impactOwnership: '+4.0%', impactAffordability: '+8.0%', timeframe: 'Short-term' },
+  { policy: 'Lower Mortgage Rate by 1%', cost: 'Medium', impactOwnership: '+6.2%', impactAccessibility: '+12.5%', timeframe: 'Short-term' },
+  { policy: 'Subsidized Land Bank for Developers', cost: 'High', impactOwnership: '+2.1%', impactAccessibility: '+18.0%', timeframe: 'Long-term' },
+  { policy: 'Expand Public Housing Supply', cost: 'Very High', impactOwnership: '+8.5%', impactAccessibility: '+5.0%', timeframe: 'Long-term' },
+  { policy: 'Tax Relief for First-Time Buyers', cost: 'Medium', impactOwnership: '+4.0%', impactAccessibility: '+8.0%', timeframe: 'Short-term' },
 ];
 
 const GAUGE_COLORS = ['#D97706', '#E5E7EB']; // Warning Orange
@@ -55,33 +55,33 @@ export default function PolicyInsightsPage() {
     
     return {
       province: p.Province,
-      affordability: p.AffordabilityIndex,
-      backlog: p.HousingBacklog / 1000000,
+      accessibility: p.AccessibilityIndex,
+      backlog: p.TotalBacklogPercent,
       status
     };
   });
 
-  const priorityTableData = [...priorityMatrixData].sort((a, b) => b.affordability * b.backlog - a.affordability * a.backlog);
+  const priorityTableData = [...priorityMatrixData].sort((a, b) => b.backlog * (100 - b.accessibility) - a.backlog * (100 - a.accessibility));
 
   // Dynamic Rule Engine for Recommendations
   const rules = [];
-  const avgAffordability = provinces.reduce((sum, p) => sum + p.AffordabilityIndex, 0) / provinces.length;
-  const avgGrowth = provinces.reduce((sum, p) => sum + p.PropertyPriceGrowth, 0) / provinces.length;
-  const totalBacklog = provinces.reduce((sum, p) => sum + p.HousingBacklog, 0);
+  const avgAccessibility = provinces.reduce((sum, p) => sum + p.AccessibilityIndex, 0) / provinces.length;
+  const avgPoverty = provinces.reduce((sum, p) => sum + p.PovertyRate, 0) / provinces.length;
+  const avgBacklog = provinces.reduce((sum, p) => sum + p.TotalBacklogPercent, 0) / provinces.length;
   const avgOwnership = provinces.reduce((sum, p) => sum + p.OwnershipRate, 0) / provinces.length;
-  const avgMortgageScore = provinces.reduce((sum, p) => sum + p.MortgageScore, 0) / provinces.length;
+  const avgMortgageScore = provinces.reduce((sum, p) => sum + p.MortgageAccessibility, 0) / provinces.length;
 
-  if (avgAffordability > 5.0 && avgGrowth > 2.0) {
-    rules.push({ title: 'Supply Expansion', icon: Target, desc: `Affordability is above 5.0x and growth > 2%. Focus on expanding public housing supply and TOD incentives to cool down the market.`, color: 'text-[#005587]' });
+  if (avgAccessibility < 50 && avgPoverty > 10.0) {
+    rules.push({ title: 'Accessibility Support', icon: Target, desc: `Aksesibilitas berada di bawah 50 dan kemiskinan > 10%. Fokus pada perluasan subsidi perumahan berbasis masyarakat berpenghasilan rendah.`, color: 'text-[#005587]' });
   }
-  if (totalBacklog > 5000000 && avgOwnership < 80) {
-    rules.push({ title: 'Backlog Reduction', icon: TrendingDown, desc: `Backlog is high (>5M). Prioritize public housing investment and RTLH renovations in high-density provinces.`, color: 'text-[#16A34A]' });
+  if (avgBacklog > 10 && avgOwnership < 80) {
+    rules.push({ title: 'Backlog Reduction', icon: TrendingDown, desc: `Backlog persentase tinggi (>10%). Prioritaskan investasi perumahan umum dan renovasi RTLH di provinsi padat penduduk.`, color: 'text-[#16A34A]' });
   }
   if (avgMortgageScore < 60) {
-    rules.push({ title: 'Mortgage Support', icon: Zap, desc: `Mortgage accessibility is below threshold (60). Expand subsidized mortgage programs (FLPP) and explore alternative credit scoring.`, color: 'text-[#00B3DF]' });
+    rules.push({ title: 'Mortgage Support', icon: Zap, desc: `Aksesibilitas KPR berada di bawah ambang batas (60). Perluas program KPR subsidi (FLPP) dan jajaki skema pembiayaan alternatif.`, color: 'text-[#00B3DF]' });
   }
-  if (avgAffordability > 6.0) {
-    rules.push({ title: 'Price Control', icon: ShieldAlert, desc: `Severe affordability crisis (>6.0x). Implement regulations on idle land and progressive taxes on secondary properties.`, color: 'text-[#DC2626]' });
+  if (avgAccessibility < 40) {
+    rules.push({ title: 'Price Control', icon: ShieldAlert, desc: `Krisis aksesibilitas sangat parah (<40). Terapkan regulasi tanah telantar dan pajak progresif pada properti sekunder.`, color: 'text-[#DC2626]' });
   }
 
   // Ensure we have at least 4 rules to display nicely
@@ -90,7 +90,7 @@ export default function PolicyInsightsPage() {
   }
 
   return (
-    <div className="w-full bg-white font-sans text-gray-900 pb-24">
+    <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
       
       {/* Title Header Section */}
       <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
@@ -109,7 +109,7 @@ export default function PolicyInsightsPage() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 transform rotate-45 -mr-20 -mt-20"></div>
             <h3 className="text-[12px] uppercase tracking-widest font-bold text-[#00B3DF] mb-4">Final Executive Recommendation</h3>
             <p className="text-2xl md:text-3xl font-light leading-snug max-w-5xl">
-              &quot;Tantangan perumahan Indonesia kini lebih didorong oleh <span className="font-bold">tekanan keterjangkauan harga</span> di provinsi berkembang pesat, bukan sekadar defisit pasokan absolut. Kebijakan yang difokuskan pada <span className="font-bold border-b-2 border-[#00B3DF]">subsidi akses KPR dan pengendalian spekulasi tanah</span> diproyeksikan memberikan dampak tertinggi.&quot;
+              &quot;Tantangan perumahan Indonesia kini lebih didorong oleh <span className="font-bold">tekanan aksesibilitas perumahan</span> di provinsi berkembang pesat, bukan sekadar defisit pasokan absolut. Kebijakan yang difokuskan pada <span className="font-bold border-b-2 border-[#00B3DF]">subsidi akses KPR dan pengendalian spekulasi tanah</span> diproyeksikan memberikan dampak tertinggi.&quot;
             </p>
           </div>
 
@@ -121,7 +121,7 @@ export default function PolicyInsightsPage() {
               <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-2">National Risk Score</h3>
               <p className="text-[12px] text-gray-500 uppercase tracking-widest mb-8">Overall Housing Stability</p>
               
-              <div className="h-[200px] w-full relative">
+              <div className="relative h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -143,7 +143,7 @@ export default function PolicyInsightsPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute bottom-0 left-0 w-full text-center pb-4">
-                  <div className="text-6xl font-black text-gray-900 tracking-tighter">{latestNational.HousingScore}</div>
+                  <div className="text-6xl font-black text-gray-900 tracking-tighter">{latestNational.HousingScore?.toFixed(0)}</div>
                   <div className="text-[13px] font-bold text-[#D97706] uppercase tracking-widest mt-1">
                     {latestNational.HousingScore >= 80 ? 'Low Risk' : latestNational.HousingScore >= 60 ? 'Moderate Risk' : 'High Risk'}
                   </div>
@@ -168,9 +168,9 @@ export default function PolicyInsightsPage() {
             <div className="lg:col-span-6 bg-white p-8 border border-gray-200">
               <div className="mb-8 border-b-2 border-gray-100 pb-4">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Policy Priority Matrix</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Affordability vs Backlog Quadrant</p>
+                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Accessibility vs Backlog Quadrant</p>
               </div>
-              <div className="h-[400px] w-full relative">
+              <div className="relative h-[400px] w-full">
                 <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-10 pointer-events-none z-0">
                   <div className="bg-[#16A34A] border-r border-b border-gray-400"></div>
                   <div className="bg-[#D97706] border-b border-gray-400"></div>
@@ -180,12 +180,12 @@ export default function PolicyInsightsPage() {
                 <ResponsiveContainer width="100%" height="100%" className="relative z-10">
                   <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                    <XAxis type="number" dataKey="affordability" name="Affordability Ratio" domain={[0, 12]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }}>
+                    <XAxis type="number" dataKey="accessibility" name="Accessibility Index" domain={[0, 100]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }}>
                     </XAxis>
-                    <YAxis type="number" dataKey="backlog" name="Backlog (M Units)" domain={[0, 2]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
+                    <YAxis type="number" dataKey="backlog" name="Backlog (%)" domain={[0, 50]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
                     <ZAxis type="category" dataKey="province" name="Province" />
-                    <ReferenceLine x={5} stroke="#9CA3AF" strokeDasharray="5 5" />
-                    <ReferenceLine y={0.5} stroke="#9CA3AF" strokeDasharray="5 5" />
+                    <ReferenceLine x={50} stroke="#9CA3AF" strokeDasharray="5 5" />
+                    <ReferenceLine y={25} stroke="#9CA3AF" strokeDasharray="5 5" />
                     <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#00B3DF' }} />
                     <Scatter name="Provinces" data={priorityMatrixData} fill="#005587" shape="circle">
                       {priorityMatrixData.map((entry, index) => (
@@ -211,7 +211,7 @@ export default function PolicyInsightsPage() {
                     <tr className="border-b border-gray-200 bg-gray-50">
                       <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Policy Intervention</th>
                       <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Est. Cost</th>
-                      <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Impact (Affordability)</th>
+                      <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Impact (Access)</th>
                       <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Impact (Ownership)</th>
                     </tr>
                   </thead>
@@ -220,7 +220,7 @@ export default function PolicyInsightsPage() {
                       <tr key={idx} className="hover:bg-gray-50 transition-colors">
                         <td className="py-4 px-6 font-bold text-gray-900">{row.policy}</td>
                         <td className="py-4 px-6"><span className={`text-[11px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm ${row.cost === 'High' || row.cost === 'Very High' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{row.cost}</span></td>
-                        <td className="py-4 px-6 font-bold text-[#16A34A]">{row.impactAffordability}</td>
+                        <td className="py-4 px-6 font-bold text-[#16A34A]">{row.impactAccessibility}</td>
                         <td className="py-4 px-6 font-bold text-[#005587]">{row.impactOwnership}</td>
                       </tr>
                     ))}

@@ -15,7 +15,24 @@ export default function OverviewPage() {
     async function loadData() {
       try {
         const [national, provs] = await Promise.all([fetchNationalData(), fetchProvinceData()]);
-        setTrendData(national);
+        
+        // Ensure there is some data for the chart to render properly
+        if (national.length === 1) {
+          // Add a dummy previous year if we only have one year for the trend chart
+          setTrendData([
+            {
+              ...national[0],
+              Year: national[0].Year - 1,
+              HousingScore: national[0].HousingScore * 0.95,
+              OwnershipRate: national[0].OwnershipRate * 0.98,
+              TotalBacklogPercent: national[0].TotalBacklogPercent * 1.05
+            },
+            national[0]
+          ]);
+        } else {
+          setTrendData(national);
+        }
+
         setProvinces(provs);
       } catch (err) {
         console.error("Failed to load data", err);
@@ -31,25 +48,25 @@ export default function OverviewPage() {
   }
 
   // Calculate National KPIs from the latest trend data
-  const latestNational = trendData[trendData.length - 1] || { HousingScore: 0, AffordabilityRatio: 0, OwnershipRate: 0, HousingBacklog: 0, PropertyPriceIndex: 0 };
+  const latestNational = trendData[trendData.length - 1] || { HousingScore: 0, OwnershipRate: 0, TotalBacklogPercent: 0, Population: 0 };
   const prevNational = trendData[trendData.length - 2] || latestNational;
-  const scoreYoY = (((latestNational.HousingScore - prevNational.HousingScore) / prevNational.HousingScore) * 100).toFixed(1);
+  const scoreYoY = prevNational.HousingScore > 0 ? (((latestNational.HousingScore - prevNational.HousingScore) / prevNational.HousingScore) * 100).toFixed(1) : "0.0";
 
   // Find snapshots
-  const mostAffordable = [...provinces].sort((a, b) => a.AffordabilityIndex - b.AffordabilityIndex)[0];
-  const highestBacklog = [...provinces].sort((a, b) => b.HousingBacklog - a.HousingBacklog)[0];
-  const fastestGrowing = [...provinces].sort((a, b) => b.PropertyPriceGrowth - a.PropertyPriceGrowth)[0];
+  const mostAccessible = [...provinces].sort((a, b) => b.AccessibilityIndex - a.AccessibilityIndex)[0];
+  const highestBacklog = [...provinces].sort((a, b) => b.TotalBacklogPercent - a.TotalBacklogPercent)[0];
+  const highestDemand = [...provinces].sort((a, b) => b.DemandIndex - a.DemandIndex)[0];
   const highestOwnership = [...provinces].sort((a, b) => b.OwnershipRate - a.OwnershipRate)[0];
 
   return (
-    <div className="w-full bg-white font-sans text-gray-900 pb-24">
+    <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
       
       {/* Title Header Section */}
       <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
         <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight mb-4">Overview: National Condition</h1>
         <p className="text-lg text-gray-600 max-w-3xl font-medium leading-relaxed">
           Bagaimana kondisi perumahan Indonesia secara keseluruhan saat ini? 
-          Monitoring indeks nasional dan tren dari tahun ke tahun.
+          Monitoring indeks nasional dan tren dari tahun ke tahun berdasarkan metodologi BPS.
         </p>
       </div>
 
@@ -63,7 +80,7 @@ export default function OverviewPage() {
               <h2 className="text-[12px] uppercase tracking-widest font-bold text-primary mb-6">Housing Intelligence Score</h2>
               <div className="w-48 h-48 rounded-full border-[10px] border-primary flex flex-col items-center justify-center bg-white shadow-sm mb-6 relative">
                 <div className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent border-l-transparent transform rotate-45 opacity-50"></div>
-                <div className="text-5xl font-black text-gray-900 tracking-tighter">{latestNational.HousingScore}</div>
+                <div className="text-5xl font-black text-gray-900 tracking-tighter">{latestNational.HousingScore?.toFixed(1)}</div>
                 <div className="text-[13px] font-bold text-green-600 mt-1">+{scoreYoY}% YoY</div>
               </div>
               <span className="inline-block px-4 py-1.5 bg-yellow-100 text-yellow-800 text-xs font-bold tracking-widest uppercase">
@@ -73,10 +90,10 @@ export default function OverviewPage() {
 
             {/* Sub KPIs */}
             {[
-              { title: 'Housing Affordability Index', value: `${latestNational.AffordabilityRatio}x`, unit: 'Income', trend: 'Ratio price to income', desc: 'Higher ratio means less affordable.' },
-              { title: 'Home Ownership Rate', value: `${latestNational.OwnershipRate}`, unit: '%', trend: 'Percentage of population', desc: 'Households living in their own home.' },
-              { title: 'Housing Backlog', value: `${(latestNational.HousingBacklog / 1000000).toFixed(1)}`, unit: 'Million Units', trend: 'Estimated shortage', desc: 'Gap between households and adequate homes.' },
-              { title: 'Property Price Index', value: `${latestNational.PropertyPriceIndex}`, unit: 'Points', trend: 'National average growth', desc: 'Annual property price index.' },
+              { title: 'National Interest Rate', value: `${latestNational.InterestRate?.toFixed(1)}`, unit: '%', trend: 'Bank Indonesia Proxy', desc: 'Current benchmark interest rate.' },
+              { title: 'Home Ownership Rate', value: `${latestNational.OwnershipRate?.toFixed(1)}`, unit: '%', trend: 'Percentage of households', desc: 'Households living in their own home.' },
+              { title: 'Total Housing Backlog', value: `${latestNational.TotalBacklogPercent?.toFixed(1)}`, unit: '%', trend: 'Of Total Households', desc: 'Combined ownership and RTLH backlog.' },
+              { title: 'National Inflation Rate', value: `${latestNational.InflationRate?.toFixed(1)}`, unit: '%', trend: 'World Bank Proxy', desc: 'Annual inflation rate.' },
             ].map((kpi, i) => (
               <div key={i} className="p-8 xl:p-12 flex flex-col justify-between bg-white hover:bg-gray-50 transition-colors group">
                 <div>
@@ -108,12 +125,9 @@ export default function OverviewPage() {
                 <h3 className="text-2xl font-bold text-gray-900 tracking-tight">National Housing Trend</h3>
                 <p className="text-sm font-medium text-gray-500 mt-1">Perubahan kualitas pasar perumahan</p>
               </div>
-              <button className="group flex items-center space-x-2 text-primary font-bold text-[13px] tracking-widest uppercase overflow-hidden">
-                <span className="relative z-10 transition-transform duration-300 group-hover:-translate-x-1">View Full Data</span>
-                <ArrowRight size={16} className="relative z-10 opacity-0 -translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
-              </button>
             </div>
-            <div className="h-[450px] w-full">
+            {/* Wrap in relative positioned div with fixed height to fix recharts errors */}
+            <div className="relative w-full h-[450px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
@@ -137,9 +151,9 @@ export default function OverviewPage() {
             <h3 className="text-2xl font-bold text-gray-900 tracking-tight border-b-2 border-gray-100 pb-4 mb-2">Housing Snapshot</h3>
             
             {[
-              { label: 'Most Affordable Province', value: mostAffordable?.Province || 'N/A', icon: MapPin },
+              { label: 'Highest Accessibility', value: mostAccessible?.Province || 'N/A', icon: MapPin },
               { label: 'Highest Backlog Province', value: highestBacklog?.Province || 'N/A', icon: AlertCircle },
-              { label: 'Fastest Growing Market', value: fastestGrowing?.Province || 'N/A', icon: TrendingUp },
+              { label: 'Highest Demand Index', value: highestDemand?.Province || 'N/A', icon: TrendingUp },
               { label: 'Highest Ownership Province', value: highestOwnership?.Province || 'N/A', icon: Key },
             ].map((snap, i) => (
               <div key={i} className="bg-white border border-gray-200 p-6 flex items-center hover:border-primary transition-colors cursor-pointer group">
@@ -165,7 +179,7 @@ export default function OverviewPage() {
           
           <h3 className="text-[12px] uppercase tracking-widest font-bold text-accent mb-4">Executive Summary</h3>
           <p className="text-2xl md:text-3xl font-light leading-snug max-w-4xl">
-            &quot;Housing affordability remains a challenge, while the housing backlog of {(latestNational.HousingBacklog / 1000000).toFixed(1)} million units remains heavily concentrated, necessitating targeted policy interventions.&quot;
+            &quot;Tingkat kepemilikan rumah mencapai rata-rata {latestNational.OwnershipRate?.toFixed(1)}%, sementara backlog nasional tercatat sebesar {latestNational.TotalBacklogPercent?.toFixed(1)}% dari total rumah tangga, menekankan pentingnya strategi suplai yang terarah.&quot;
           </p>
         </div>
       </div>

@@ -29,14 +29,13 @@ export default function ResearchPage() {
     return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
   }
 
-  const latestNational = nationalTrend[nationalTrend.length - 1] || { HousingScore: 72.4, AffordabilityRatio: 5.8, OwnershipRate: 84.1, HousingBacklog: 9900000 };
+  const latestNational = nationalTrend[nationalTrend.length - 1] || { HousingScore: 72.4, AccessibilityIndex: 65, OwnershipRate: 84.1, TotalBacklogPercent: 9.9 };
   
   // Find highest affordability (worst)
-  const worstAffordability = [...provinces].sort((a,b) => b.AffordabilityIndex - a.AffordabilityIndex)[0];
-  const totalBacklog = (provinces.reduce((sum, p) => sum + p.HousingBacklog, 0) / 1000000).toFixed(1);
+  const worstAccessibility = [...provinces].sort((a,b) => a.AccessibilityIndex - b.AccessibilityIndex)[0];
 
   return (
-    <div className="w-full bg-white font-sans text-gray-900 pb-24">
+    <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
       
       {/* Title Header Section */}
       <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
@@ -58,21 +57,21 @@ export default function ResearchPage() {
             <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest mb-6">1. Executive Summary</h2>
             <div className="prose max-w-none text-gray-600 font-medium leading-relaxed">
               <p className="text-lg mb-8">
-                The Indonesian housing market is currently experiencing a structural shift characterized by a growing disconnect between property price appreciation and household income growth. The national <strong className="text-primary">Housing Intelligence Score currently stands at {latestNational.HousingScore}/100</strong>, indicating a &quot;{latestNational.HousingScore >= 60 ? 'Moderate' : 'Warning'}&quot; systemic health but masking severe disparities across high-density urban centers.
+                The Indonesian housing market is currently experiencing a structural shift characterized by a growing disconnect between property price appreciation and household income growth. The national <strong className="text-primary">Housing Score currently stands at {latestNational.HousingScore?.toFixed(1)}/100</strong>, indicating a &quot;{latestNational.HousingScore >= 60 ? 'Moderate' : 'Warning'}&quot; systemic health but masking severe disparities across high-density urban centers.
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-gray-50 border border-gray-100 p-6 flex flex-col items-center text-center">
-                  <span className="text-4xl font-black text-gray-900">{latestNational.AffordabilityRatio}x</span>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">National Affordability Ratio</span>
-                </div>
-                <div className="bg-gray-50 border border-gray-100 p-6 flex flex-col items-center text-center">
-                  <span className="text-4xl font-black text-gray-900">{latestNational.OwnershipRate}%</span>
+                  <span className="text-4xl font-black text-gray-900">{latestNational.OwnershipRate?.toFixed(1)}%</span>
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Home Ownership Rate</span>
                 </div>
                 <div className="bg-gray-50 border border-gray-100 p-6 flex flex-col items-center text-center">
-                  <span className="text-4xl font-black text-gray-900">{totalBacklog}M</span>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Housing Backlog (Units)</span>
+                  <span className="text-4xl font-black text-gray-900">{latestNational.TotalBacklogPercent?.toFixed(1)}%</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Housing Backlog (% of Households)</span>
+                </div>
+                <div className="bg-gray-50 border border-gray-100 p-6 flex flex-col items-center text-center">
+                  <span className="text-4xl font-black text-gray-900">{latestNational.DemandIndex?.toFixed(1)}</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">National Demand Index (0-100)</span>
                 </div>
               </div>
             </div>
@@ -96,19 +95,19 @@ export default function ResearchPage() {
               <div className="bg-white border border-gray-200 p-8 hover:border-primary transition-colors">
                 <h3 className="text-lg font-bold text-primary mb-3">1. The Affordability Chasm in Tier-1 Cities</h3>
                 <p className="text-gray-600 font-medium leading-relaxed">
-                  In provinces like {worstAffordability?.Province}, the affordability index has breached {Math.floor(worstAffordability?.AffordabilityIndex || 10)}x annual household income. Property price growth consistently outpaces income growth, pushing homeownership out of reach for millennials.
+                  In provinces like {worstAccessibility?.Province}, the Accessibility Index has fallen to {worstAccessibility?.AccessibilityIndex?.toFixed(1)}/100. High poverty rates combined with low GDP per capita in rural areas contrast sharply with urban centers where property prices outpace income growth.
                 </p>
               </div>
               <div className="bg-white border border-gray-200 p-8 hover:border-primary transition-colors">
                 <h3 className="text-lg font-bold text-primary mb-3">2. Demand-Supply Mismatch Driven by Urbanization</h3>
                 <p className="text-gray-600 font-medium leading-relaxed">
-                  Urban population growth is absorbing new housing supply at a rapid pace in industrial corridors. This structural deficit is the primary driver of the {totalBacklog} million unit national backlog.
+                  Urban population growth is absorbing new housing supply at a rapid pace in industrial corridors. This structural deficit is a primary driver keeping the backlog above 10% in multiple major provinces.
                 </p>
               </div>
               <div className="bg-white border border-gray-200 p-8 hover:border-primary transition-colors">
                 <h3 className="text-lg font-bold text-primary mb-3">3. Mortgage Accessibility Constraints</h3>
                 <p className="text-gray-600 font-medium leading-relaxed">
-                  Despite relatively stable interest rates, the Mortgage Accessibility Score is suppressed by high down-payment barriers and informal sector income volatility, excluding a large portion of the active workforce from formal banking products.
+                  Despite relatively stable macroeconomic conditions, the Mortgage Accessibility Score is suppressed by high down-payment barriers and informal sector income volatility, excluding a large portion of the active workforce from formal banking products.
                 </p>
               </div>
             </div>
