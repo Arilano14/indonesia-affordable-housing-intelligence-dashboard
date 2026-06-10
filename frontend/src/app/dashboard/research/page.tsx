@@ -38,14 +38,16 @@ export default function ResearchPage() {
     <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
       
       {/* Title Header Section */}
-      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
-        <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight mb-4 flex items-center">
-          <BookOpen className="mr-4 text-accent" size={40} />
-          Research Findings
-        </h1>
-        <p className="text-lg text-gray-600 max-w-3xl font-medium leading-relaxed">
-          Applied Business Intelligence analysis of the Indonesian housing market, assessing affordability, ownership access, and policy interventions.
-        </p>
+      <div className="w-full bg-[#0B1B36] text-white">
+        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white flex items-center">
+            <BookOpen className="mr-4 text-[#00B3DF]" size={48} />
+            Research Findings
+          </h1>
+          <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
+            Applied Business Intelligence analysis of the Indonesian housing market, assessing affordability, ownership access, and policy interventions.
+          </p>
+        </div>
       </div>
 
       <div className="border-y border-gray-200 bg-[#F9F9F9] py-12">

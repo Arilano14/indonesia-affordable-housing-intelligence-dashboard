@@ -107,12 +107,14 @@ export default function RegionalAnalysisPage() {
     <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
       
       {/* Title Header Section */}
-      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
-        <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight mb-4">Regional Analysis</h1>
-        <p className="text-lg text-gray-600 max-w-3xl font-medium leading-relaxed">
-          Provinsi mana yang memiliki kondisi perumahan terbaik dan terburuk? Analisis spasial 
-          dan perbandingan metrik kunci antar wilayah di Indonesia.
-        </p>
+      <div className="w-full bg-[#0B1B36] text-white">
+        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white">Regional Analysis</h1>
+          <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
+            Provinsi mana yang memiliki kondisi perumahan terbaik dan terburuk? Analisis spasial 
+            dan perbandingan metrik kunci antar wilayah di Indonesia.
+          </p>
+        </div>
       </div>
 
       <div className="border-y border-gray-200 bg-[#F9F9F9]">

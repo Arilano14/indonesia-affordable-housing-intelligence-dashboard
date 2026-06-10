@@ -62,12 +62,14 @@ export default function OverviewPage() {
     <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
       
       {/* Title Header Section */}
-      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
-        <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight mb-4">Overview: National Condition</h1>
-        <p className="text-lg text-gray-600 max-w-3xl font-medium leading-relaxed">
-          Bagaimana kondisi perumahan Indonesia secara keseluruhan saat ini? 
-          Monitoring indeks nasional dan tren dari tahun ke tahun berdasarkan metodologi BPS.
-        </p>
+      <div className="w-full bg-[#0B1B36] text-white">
+        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white">Overview: National Condition</h1>
+          <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
+            Bagaimana kondisi perumahan Indonesia secara keseluruhan saat ini? 
+            Monitoring indeks nasional dan tren dari tahun ke tahun berdasarkan metodologi BPS.
+          </p>
+        </div>
       </div>
 
       {/* Main KPI Grid - OECD Style (Seamless borders) */}

@@ -69,17 +69,15 @@ export function Header() {
   });
 
   return (
-    <header ref={headerRef} className="w-full flex flex-col font-sans border-b border-gray-200 sticky top-0 z-50 bg-white relative">
+    <header ref={headerRef} className="w-full flex flex-col font-sans border-b border-gray-200 sticky top-0 z-50 bg-[#F4F4F4] relative">
       {/* Top Utility Bar */}
-      <div className="h-auto md:h-24 bg-white flex flex-col md:flex-row items-center justify-between px-6 xl:px-12 py-4 md:py-0">
+      <div className="h-auto md:h-24 bg-[#F4F4F4] flex flex-col md:flex-row items-center justify-between px-6 xl:px-12 py-4 md:py-0">
         
         <div className="flex items-center justify-between w-full md:w-auto">
           <div className="flex items-center space-x-4 md:space-x-5">
-            <div className="w-12 h-12 md:w-14 md:h-14 bg-primary flex items-center justify-center font-bold text-xl md:text-2xl text-white tracking-widest shrink-0">
-              IA
-            </div>
+            <img src="/logo.png" alt="IAHID Logo" className="h-10 md:h-12 w-auto object-contain shrink-0" />
             <div className="flex flex-col">
-              <span className="font-extrabold text-lg md:text-2xl leading-tight tracking-tight text-primary line-clamp-1">Indonesia Affordable Housing Intelligence</span>
+              <span className="font-bold text-lg md:text-2xl leading-tight tracking-tight text-[#111827] line-clamp-1">Indonesia Affordable Housing Intelligence</span>
               <span className="text-[10px] md:text-[12px] text-gray-500 uppercase tracking-widest mt-0.5 md:mt-1">Ministry of Public Works and Housing</span>
             </div>
           </div>
@@ -109,8 +107,8 @@ export function Header() {
       </div>
 
       {/* Main Navigation Bar */}
-      <div className={`bg-gray-50 border-t border-gray-200 px-6 xl:px-12 flex flex-col md:flex-row items-center md:h-14 transition-all duration-300 ${mobileMenuOpen ? 'flex py-4' : 'hidden md:flex'}`}>
-        <nav className="flex flex-col md:flex-row items-start md:items-center md:space-x-10 text-[13px] font-bold text-gray-600 uppercase tracking-widest w-full md:overflow-x-auto custom-scrollbar">
+      <div className={`bg-[#F4F4F4] px-6 xl:px-12 flex flex-col md:flex-row items-center md:h-14 transition-all duration-300 ${mobileMenuOpen ? 'flex py-4' : 'hidden md:flex'}`}>
+        <nav className="flex flex-col md:flex-row items-start md:items-center md:space-x-8 text-[14px] font-bold text-[#111827] w-full md:overflow-x-auto custom-scrollbar">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.path;
             return (
