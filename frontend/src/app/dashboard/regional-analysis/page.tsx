@@ -32,6 +32,8 @@ export default function RegionalAnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState("2024");
   const [yearOpen, setYearOpen] = useState(false);
+  const [provA, setProvA] = useState("DKI Jakarta");
+  const [provB, setProvB] = useState("Jawa Barat");
 
   useEffect(() => {
     async function loadData() {
@@ -90,16 +92,15 @@ export default function RegionalAnalysisPage() {
     score: p.HousingScore
   }));
 
-  // Find Jakarta and Jogja for Radar Comparison
-  const jkt = displayProvinces.find(p => p.Province.includes("Jakarta")) || displayProvinces[0] || {} as CalculatedKPIs;
-  const jog = displayProvinces.find(p => p.Province.includes("Yogyakarta")) || displayProvinces[1] || displayProvinces[0] || {} as CalculatedKPIs;
+  const provAData = displayProvinces.find(p => p.Province === provA) || displayProvinces[0] || {} as CalculatedKPIs;
+  const provBData = displayProvinces.find(p => p.Province === provB) || displayProvinces[1] || displayProvinces[0] || {} as CalculatedKPIs;
 
   const radarData = [
-    { subject: 'Accessibility', A: jkt.AccessibilityIndex, B: jog.AccessibilityIndex, fullMark: 100 },
-    { subject: 'Ownership', A: jkt.OwnershipRate, B: jog.OwnershipRate, fullMark: 100 },
-    { subject: 'Supply Index', A: jkt.SupplyIndex, B: jog.SupplyIndex, fullMark: 100 },
-    { subject: 'Mortgage Access', A: jkt.MortgageAccessibility, B: jog.MortgageAccessibility, fullMark: 100 },
-    { subject: 'Demand Index', A: jkt.DemandIndex, B: jog.DemandIndex, fullMark: 100 },
+    { subject: 'Accessibility', A: provAData.AccessibilityIndex, B: provBData.AccessibilityIndex, fullMark: 100 },
+    { subject: 'Ownership', A: provAData.OwnershipRate, B: provBData.OwnershipRate, fullMark: 100 },
+    { subject: 'Supply Index', A: provAData.SupplyIndex, B: provBData.SupplyIndex, fullMark: 100 },
+    { subject: 'Mortgage Access', A: provAData.MortgageAccessibility, B: provBData.MortgageAccessibility, fullMark: 100 },
+    { subject: 'Demand Index', A: provAData.DemandIndex, B: provBData.DemandIndex, fullMark: 100 },
   ];
 
   return (
@@ -133,7 +134,7 @@ export default function RegionalAnalysisPage() {
             
             {/* Choropleth Map */}
             <div className="lg:col-span-12 bg-white p-8 border border-gray-200 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              <div className="flex justify-between items-end mb-8 border-b-2 border-gray-100 pb-4">
+              <div className="flex justify-between items-end mb-6 border-b-2 border-gray-100 pb-4">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
                     <Map size={24} className="text-primary"/> Indonesia Housing Landscape
@@ -141,38 +142,50 @@ export default function RegionalAnalysisPage() {
                   <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Housing Intelligence Score (Choropleth Map)</p>
                 </div>
               </div>
+              <div className="mb-6 bg-[#0B1120] text-[#4ADE80] p-4 rounded-md text-[13px] font-mono overflow-x-auto border border-gray-800 shadow-inner leading-relaxed">
+                <span className="text-gray-500">/* Final aggregated score for overall housing performance */</span><br/>
+                HousingScore = (0.35 * AccessibilityIndex) + (0.35 * MortgageScore) + (0.15 * SupplyIndex) + (0.15 * DemandInverse)
+              </div>
               <div className="w-full relative min-h-[400px]">
                 <ChoroplethMap data={mapData} meanScore={means.HousingScore} />
               </div>
             </div>
 
             {/* Radar Chart Comparison */}
-            <div className="lg:col-span-4 bg-white p-8 border border-gray-200 flex flex-col justify-center animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+            <div className="lg:col-span-4 bg-white p-6 xl:p-8 border border-gray-200 flex flex-col animate-fade-in-up h-full" style={{ animationDelay: '0.4s' }}>
+              <div className="mb-4 border-b-2 border-gray-100 pb-4 shrink-0">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Regional Benchmark</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Jakarta vs Yogyakarta</p>
+                <p className="text-[12px] text-gray-500 mt-1 uppercase tracking-widest line-clamp-2">Province vs Province</p>
               </div>
-              <div className="relative w-full h-[300px]">
+              <div className="flex flex-col gap-2 mb-4 shrink-0">
+                <select className="w-full p-2 border border-gray-200 rounded text-sm font-bold bg-gray-50 text-gray-800" value={provA} onChange={(e) => setProvA(e.target.value)}>
+                  {displayProvinces.map(p => <option key={`A-${p.Province}`} value={p.Province}>{p.Province}</option>)}
+                </select>
+                <select className="w-full p-2 border border-gray-200 rounded text-sm font-bold bg-gray-50 text-gray-800" value={provB} onChange={(e) => setProvB(e.target.value)}>
+                  {displayProvinces.map(p => <option key={`B-${p.Province}`} value={p.Province}>{p.Province}</option>)}
+                </select>
+              </div>
+              <div className="relative w-full flex-1 min-h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                     <PolarGrid stroke="#E5E7EB" />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: '#6B7280' }} />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar name="Jakarta" dataKey="A" stroke="#00B3DF" fill="#00B3DF" fillOpacity={0.5} />
-                    <Radar name="Yogyakarta" dataKey="B" stroke="#16A34A" fill="#16A34A" fillOpacity={0.5} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} />
+                    <Radar name={provA} dataKey="A" stroke="#00B3DF" fill="#00B3DF" fillOpacity={0.5} />
+                    <Radar name={provB} dataKey="B" stroke="#16A34A" fill="#16A34A" fillOpacity={0.5} />
+                    <RechartsTooltip formatter={(value: number) => value ? Number(value).toFixed(2) : '0.00'} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Top 5 Provinces */}
-            <div className="lg:col-span-4 bg-white p-8 border border-gray-200 hover:shadow-sm transition-shadow animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+            <div className="lg:col-span-4 bg-white p-6 xl:p-8 border border-gray-200 hover:shadow-sm transition-shadow flex flex-col animate-fade-in-up h-full" style={{ animationDelay: '0.2s' }}>
+              <div className="mb-4 border-b-2 border-gray-100 pb-4 shrink-0">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Top 5 Provinces</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Highest Housing Intelligence Score</p>
+                <p className="text-[12px] text-gray-500 mt-1 uppercase tracking-widest line-clamp-2">Highest Housing Intelligence Score</p>
               </div>
-              <div className="relative w-full h-[300px]">
+              <div className="relative w-full flex-1 min-h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={topProvinces} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
@@ -186,12 +199,12 @@ export default function RegionalAnalysisPage() {
             </div>
 
             {/* Bottom 5 Provinces */}
-            <div className="lg:col-span-4 bg-white p-8 border border-gray-200 hover:shadow-sm transition-shadow animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+            <div className="lg:col-span-4 bg-white p-6 xl:p-8 border border-gray-200 hover:shadow-sm transition-shadow flex flex-col animate-fade-in-up h-full" style={{ animationDelay: '0.3s' }}>
+              <div className="mb-4 border-b-2 border-gray-100 pb-4 shrink-0">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Bottom 5 Provinces</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Lowest Housing Intelligence Score</p>
+                <p className="text-[12px] text-gray-500 mt-1 uppercase tracking-widest line-clamp-2">Lowest Housing Intelligence Score</p>
               </div>
-              <div className="relative w-full h-[300px]">
+              <div className="relative w-full flex-1 min-h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={bottomProvinces.reverse()} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />

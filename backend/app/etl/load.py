@@ -38,19 +38,17 @@ def run_load():
     df_backlog.to_csv(os.path.join(FRONTEND_DATASETS_DIR, "housing_backlog.csv"), index=False)
     
     # 4. housing_worldbank.csv
-    df_wb = df_prov[['Province', 'Year', 'GDPPerCapita', 'PovertyRate', 'InterestRate', 'InflationRate']].copy()
+    df_wb = df_prov[['Province', 'Year', 'GDPPerCapita', 'PovertyRate', 'InterestRate']].copy()
     df_wb.to_csv(os.path.join(FRONTEND_DATASETS_DIR, "housing_worldbank.csv"), index=False)
     
     # 5. housing_kpi.csv (The strict derived indices)
     df_kpi = df_prov[['Province', 'Year', 'DemandIndex', 'SupplyIndex', 'AccessibilityIndex', 'MortgageAccessibility', 'HousingScore']].copy()
     df_kpi.to_csv(os.path.join(FRONTEND_DATASETS_DIR, "housing_kpi.csv"), index=False)
     
-    # 6. housing_flpp.csv 
-    # Extracted Proxy from transform.py
-    df_flpp = df_prov[['Province', 'Year', 'EstimatedFLPPUnits', 'FLPP_Penetration']].copy()
-    df_flpp.rename(columns={'EstimatedFLPPUnits': 'FLPPUnits'}, inplace=True)
-    df_flpp['DataStatus'] = "Estimated proxy (5% backlog * households)"
-    df_flpp.to_csv(os.path.join(FRONTEND_DATASETS_DIR, "housing_flpp.csv"), index=False)
+    # 6. FLPP Data removed to adhere to Strict Credibility rules (no dummy data)
+    flpp_path = os.path.join(FRONTEND_DATASETS_DIR, "housing_flpp.csv")
+    if os.path.exists(flpp_path):
+        os.remove(flpp_path)
 
     logger.info(f"Load complete. 6 datasets generated in {FRONTEND_DATASETS_DIR}")
 

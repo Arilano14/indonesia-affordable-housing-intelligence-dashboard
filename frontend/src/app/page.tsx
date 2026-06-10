@@ -73,7 +73,7 @@ export default function OverviewPage() {
       {/* Main KPI Grid - OECD Style (Seamless borders) */}
       <div className="border-y border-gray-200 bg-[#F9F9F9]">
         <div className="max-w-[1600px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-200">
             
             {/* Hero Section: Housing Intelligence Score with Circle */}
             <div className="p-8 xl:p-12 flex flex-col items-center justify-center bg-white lg:bg-transparent text-center">
@@ -93,7 +93,6 @@ export default function OverviewPage() {
               { title: 'National Interest Rate', value: `${latestNational.InterestRate?.toFixed(1)}`, unit: '%', trend: 'Bank Indonesia Proxy', desc: 'Current benchmark interest rate.' },
               { title: 'Home Ownership Rate', value: `${latestNational.OwnershipRate?.toFixed(1)}`, unit: '%', trend: 'Percentage of households', desc: 'Households living in their own home.' },
               { title: 'Total Housing Backlog', value: `${latestNational.TotalBacklogPercent?.toFixed(1)}`, unit: '%', trend: 'Of Total Households', desc: 'Combined ownership and RTLH backlog.' },
-              { title: 'National Inflation Rate', value: `${latestNational.InflationRate?.toFixed(1)}`, unit: '%', trend: 'World Bank Proxy', desc: 'Annual inflation rate.' },
             ].map((kpi, i) => (
               <div key={i} className="p-8 xl:p-12 flex flex-col justify-between bg-white hover:bg-gray-50 transition-colors group">
                 <div>

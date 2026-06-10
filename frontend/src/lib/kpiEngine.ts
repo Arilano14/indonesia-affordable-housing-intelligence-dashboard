@@ -13,7 +13,6 @@ export interface MergedProvinceData {
   PovertyRate: number;
   UrbanPopulation: number;
   InterestRate: number;
-  InflationRate: number;
   GiniIndex: number;
   DemandIndex: number;
   SupplyIndex: number;

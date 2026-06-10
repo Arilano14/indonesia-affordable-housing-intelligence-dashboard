@@ -1,2 +1,2 @@
-Year,Population,Households,HousingScore,OwnershipRate,TotalBacklogPercent,InterestRate,InflationRate
-2024,287198400.0,94497587.0,53.36483067990192,87.68631578947368,41.94210526315789,6.0,2.5
+Year,Population,Households,HousingScore,OwnershipRate,TotalBacklogPercent,InterestRate,DemandIndex,SupplyIndex,AccessibilityIndex,MortgageAccessibility
+2024,287198400.0,94497587.0,53.64116727739577,87.68631578947368,41.94210526315789,6.25,14.247561302294347,49.71333378433229,51.181800044355164,49.04241335994643

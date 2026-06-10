@@ -1,21 +1,28 @@
 # Housing Demand Index Methodology
 
-## Purpose
-To quantify the pressure and demographic necessity for housing units across different provinces.
+## Overview
+The **Housing Demand Index** quantifies the relative pressure of housing demand across different provinces. Instead of purely reflecting absolute population numbers—which would heavily skew the index toward Java—the index uses a composite weighted approach of normalized demographic metrics.
 
-## Data Sources
-- **Source A**: `IAHID_Master_Dataset.xlsx` (Population, Households, Poverty Rate via BPS)
-- **Source C**: World Bank API (Urban Population)
+## Calculation Methodology
+The Demand Index is generated in a two-step process: calculating a raw demand composite, followed by a final Min-Max normalization.
 
-## Formula
-`Demand Index = (0.40 × PopulationScore) + (0.30 × HouseholdScore) + (0.20 × UrbanPopulationScore) + (0.10 × PovertyScore)`
-*All variables are normalized (0-100).*
+### 1. Raw Demand Composite Formula
+```text
+RawDemand = (0.40 * PopulationScore) + 
+            (0.40 * HouseholdScore) + 
+            (0.20 * DensityScore)
+```
 
-## Interpretation
-A higher score indicates immense demographic pressure and a structural need for housing expansion, driven by population mass, household formation, and urbanization.
+### Components
+- **PopulationScore (40%)**: Min-Max normalized value of the province's total population.
+- **HouseholdScore (40%)**: Min-Max normalized value of the province's total number of families/households.
+- **DensityScore (20%)**: Min-Max normalized value of population density (km²), which acts as a reliable proxy for urbanization and urban housing pressure.
 
-## Limitations
-The index measures *latent* demand (demographic need) rather than *effective* demand (the financial ability to purchase). Effective demand is modeled separately via the Accessibility Index.
+### 2. Final Normalization
+```text
+DemandIndex = Normalize(RawDemand)
+```
+*Note: `Normalize()` represents Min-Max Normalization from 0 to 100.*
 
-## Academic Justification
-Population and household formation rates are the primary fundamental drivers of housing demand. Urbanization creates localized pressure points, justifying its 20% weight, while poverty indicates the necessity for subsidized/social housing intervention rather than pure commercial demand.
+## Rationale
+Using a weighted composite of normalized demographic indicators prevents severe zero-skewing. If raw population was used directly, extreme outliers (like West Java or East Java) would compress all other provinces (like Gorontalo or Maluku) to near-zero scores. By normalizing each indicator first, we maintain the structural relationships and relative demographic pressures of smaller provinces.

@@ -139,10 +139,18 @@ export default function HousingMarketPage() {
 
             {/* Dual Axis Chart (Supply vs Demand) */}
             <div className="bg-white p-8 border border-gray-200 lg:col-span-12 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+              <div className="mb-6 border-b-2 border-gray-100 pb-4">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Housing Demand vs Supply Index</h3>
                 <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">All Provinces (Sorted by Population)</p>
               </div>
+              <div className="mb-4 bg-[#0B1120] text-[#4ADE80] p-4 rounded-md text-[13px] font-mono overflow-x-auto border border-gray-800 shadow-inner leading-relaxed">
+                <span className="text-gray-500">/* Derived using weighted composite index */</span><br/>
+                DemandIndex = (0.40 * PopulationScore) + (0.40 * HouseholdScore) + (0.20 * DensityScore)<br/>
+                SupplyIndex = 100 - (0.60 * BacklogOwnership + 0.40 * BacklogRTLH)
+              </div>
+              <p className="text-[13px] text-gray-600 font-medium mb-6 leading-relaxed p-4 bg-blue-50 border-l-4 border-primary rounded-r">
+                <strong>Catatan Metodologi:</strong> Penggunaan <em>Weighted Addition</em> (Penjumlahan Berbobot) pada Demand Index dirancang untuk menanggulangi ketimpangan jumlah populasi ekstrim antara Pulau Jawa dan provinsi lain. Jika menggunakan perkalian murni, provinsi berpopulasi padat seperti Jawa Barat akan menarik batas atas normalisasi hingga menekan provinsi luar Jawa ke angka nol (<em>Zero-Skewing</em>).
+              </p>
               <div className="relative w-full h-[450px] overflow-x-auto custom-scrollbar">
                 <div style={{ minWidth: '1500px', height: '100%' }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -197,9 +205,13 @@ export default function HousingMarketPage() {
 
             {/* Column Chart */}
             <div className="bg-white p-8 border border-gray-200 lg:col-span-6 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+              <div className="mb-6 border-b-2 border-gray-100 pb-4">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Mortgage Accessibility</h3>
                 <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">All Provinces</p>
+              </div>
+              <div className="mb-6 bg-[#0B1120] text-[#4ADE80] p-4 rounded-md text-[13px] font-mono overflow-x-auto border border-gray-800 shadow-inner leading-relaxed">
+                <span className="text-gray-500">/* Incorporates benchmark interest rate (BI Rate) */</span><br/>
+                MortgageScore = (0.60 * AccessibilityIndex) + (0.40 * InterestRateInverse)
               </div>
               <div className="relative w-full h-[400px] overflow-y-auto custom-scrollbar border border-gray-100 pr-2">
                 <div style={{ height: '700px', width: '100%' }}>
@@ -224,10 +236,14 @@ export default function HousingMarketPage() {
 
           {/* Table */}
           <div className="bg-white border border-gray-200 overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-            <div className="p-8 border-b-2 border-gray-100 flex justify-between items-end">
+            <div className="p-8 border-b-2 border-gray-100 flex flex-col gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Market Ranking</h3>
                 <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Benchmark per Province</p>
+              </div>
+              <div className="w-full bg-[#0B1120] text-[#4ADE80] p-4 rounded-md text-[13px] font-mono overflow-x-auto border border-gray-800 shadow-inner leading-relaxed">
+                <span className="text-gray-500">/* Access Index measures basic macro affordability */</span><br/>
+                AccessibilityIndex = (0.30 * GDPScore) + (0.30 * OwnershipScore) + (0.20 * PovertyInverse) + (0.20 * BacklogInverse)
               </div>
             </div>
             

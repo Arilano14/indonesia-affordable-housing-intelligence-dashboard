@@ -158,8 +158,8 @@ export default function HousingDriversPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16 mb-16">
             
             {/* Correlation Matrix Heatmap */}
-            <div className="lg:col-span-7 bg-white p-8 border border-gray-200 overflow-x-auto">
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+            <div className="lg:col-span-7 bg-white p-6 xl:p-8 border border-gray-200 overflow-x-auto flex flex-col h-full min-h-[400px]">
+              <div className="mb-6 border-b-2 border-gray-100 pb-4 shrink-0">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Macroeconomic Correlation Matrix</h3>
                 <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Pearson Correlation Coefficient (r)</p>
               </div>
@@ -193,12 +193,12 @@ export default function HousingDriversPage() {
             </div>
 
             {/* Regression Drivers */}
-            <div className="lg:col-span-5 bg-white p-8 border border-gray-200 flex flex-col">
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
+            <div className="lg:col-span-5 bg-white p-6 xl:p-8 border border-gray-200 flex flex-col h-full min-h-[400px]">
+              <div className="mb-6 border-b-2 border-gray-100 pb-4 shrink-0">
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight">Feature Importance</h3>
                 <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Random Forest Regression Impact (%)</p>
               </div>
-              <div className="relative w-full h-[350px] flex-1">
+              <div className="relative w-full flex-1 min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={regressionData} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />

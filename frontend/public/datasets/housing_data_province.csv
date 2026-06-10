@@ -1,3 +1,0 @@
-Province,AverageHousePrice,AnnualHouseholdIncome,CurrentPropertyPrice,PreviousPropertyPrice,HomeOwners,TotalHouseholds,InterestRate,HousingBacklog,UrbanPopulationGrowth,NewHousingSupply,GDPPerCapita,InflationRate,PovertyRate,GiniIndex,UnemploymentRate,Population,StabilityScore
-DKI Jakarta,1500000000,250000000,1500000000,1425000000.0,1250000.0,2500000.0,7.2,500000,2.1,10000,5000,3.5,9.0,0.41,6.5,15000000.0,80
-Jawa Barat,450000000,75000000,450000000,427500000.0,7920000.0,12000000.0,7.0,800000,3.5,10000,5000,3.5,9.0,0.38,7.2,72000000.0,80

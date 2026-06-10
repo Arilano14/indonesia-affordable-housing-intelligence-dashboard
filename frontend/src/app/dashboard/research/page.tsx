@@ -71,7 +71,11 @@ export default function ResearchPage() {
                 </div>
                 <div className="bg-gray-50 border border-gray-100 p-6 flex flex-col items-center text-center">
                   <span className="text-4xl font-black text-gray-900">{latestNational.DemandIndex?.toFixed(1)}</span>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">National Demand Index (0-100)</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2 mb-4">National Demand Index (0-100)</span>
+                  <div className="w-full text-left bg-[#0B1120] text-[#4ADE80] p-3 rounded-md text-[11px] font-mono overflow-x-auto shadow-inner leading-relaxed">
+                    <span className="text-gray-500">/* Pop * HH * Urbanization */</span><br/>
+                    Demand = Σ(ProvincialDemand * Weight)
+                  </div>
                 </div>
               </div>
             </div>

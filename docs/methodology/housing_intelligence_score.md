@@ -1,24 +1,33 @@
-# Housing Intelligence Score Methodology
+# Housing Intelligence Score (HIS) Methodology
 
-## Purpose
-To provide a single, composite index that measures the overall health and performance of the affordable housing sector at both the national and provincial levels in Indonesia.
+## Overview
+The **Housing Intelligence Score (HIS)** is the core aggregate metric of the Indonesian Affordable Housing Intelligence Dashboard (IAHID). It provides a holistic evaluation of the housing landscape for each province by combining key dimensions of the housing market.
 
-## Data Sources
-- **Derived Indicator**: This is a composite score aggregating four sub-indices.
-- Original underlying data sourced from: BPS (Badan Pusat Statistik), World Bank, and Bank Indonesia.
+## Calculation Methodology
+The HIS is a composite index constructed using weighted linear aggregation of four normalized foundational pillars.
 
-## Formula
-`Housing Intelligence Score = (0.40 × Accessibility) + (0.20 × Ownership) + (0.20 × Mortgage) + (0.20 × Supply)`
-*All inputs are normalized to a 0-100 scale prior to calculation.*
+### Formula
+```text
+HousingScore = (0.40 * AccessibilityIndex) + 
+               (0.20 * OwnershipScore) + 
+               (0.20 * MortgageAccessibility) + 
+               (0.20 * SupplyIndex)
+```
 
-## Interpretation
-- **> 80**: Healthy (Strong housing sector performance)
-- **60 - 80**: Moderate (Resilient but with improvement opportunities)
-- **40 - 60**: Warning (Vulnerable housing market)
-- **< 40**: Critical (Severe affordability and backlog challenges)
+### Components
+1. **Accessibility Index (40%)**: Reflects the baseline economic capacity of the population to access housing (incorporating GDP per capita, poverty rates, and existing backlog).
+2. **Ownership Score (20%)**: The min-max normalized rate of homeownership (`100.0 - BacklogOwnershipPercent`), acting as a proxy for existing market success.
+3. **Mortgage Accessibility (20%)**: Measures how conducive the macroeconomic environment (specifically the BI 7-Day Reverse Repo Rate) is for housing finance, combined with the baseline accessibility.
+4. **Supply Index (20%)**: Measures the adequacy of housing supply by inversely penalizing ownership and RTLH (Rumah Tidak Layak Huni) backlogs.
 
-## Limitations
-The score assumes a fixed weighting across all provinces, which may not fully account for unique geographic constraints in archipelagic regions where supply elasticity differs drastically.
+## Normalization Process
+All raw inputs that are not strictly bounded between 0 and 100 are transformed using **Min-Max Normalization**:
+`Score = ((Value - Min) / (Max - Min)) * 100`
+This ensures all metrics are directly comparable before applying weights.
 
-## Academic Justification
-The 40% weight on accessibility reflects the consensus in housing economics that affordability is the primary constraint to housing market health in developing economies (World Bank, 2021). The remaining 60% is distributed evenly among ownership, financing (mortgage), and physical supply to ensure a holistic measurement.
+## Risk Classification
+Based on the final HIS, provinces are categorized under strict Data Governance rules:
+- **Healthy**: `HIS >= 80`
+- **Moderate**: `60 <= HIS < 80`
+- **Warning**: `40 <= HIS < 60`
+- **Critical**: `HIS < 40`

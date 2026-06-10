@@ -64,7 +64,10 @@ export interface NationalTrendData {
   OwnershipRate: number;
   TotalBacklogPercent: number;
   InterestRate: number;
-  InflationRate: number;
+  DemandIndex: number;
+  SupplyIndex: number;
+  AccessibilityIndex: number;
+  MortgageAccessibility: number;
 }
 
 export async function fetchNationalData(): Promise<NationalTrendData[]> {

@@ -59,7 +59,12 @@ const ChoroplethMap = ({ data, meanScore = 60 }: MapProps) => {
             {({ geographies }) =>
               geographies.map((geo) => {
                 const provinceName = geo.properties.Propinsi || geo.properties.name || "";
-                const geoName = provinceName.toLowerCase();
+                let geoName = provinceName.toLowerCase();
+                
+                // Fix geojson typos (e.g., "nusatenggara barat")
+                if (geoName.includes("nusatenggara")) {
+                  geoName = geoName.replace("nusatenggara", "nusa tenggara");
+                }
                 
                 let finalScore = 0;
                 let displayName = provinceName;

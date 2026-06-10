@@ -1,21 +1,26 @@
 # Housing Supply Index Methodology
 
-## Purpose
-To evaluate the adequacy of housing stock availability relative to the population's basic shelter needs.
+## Overview
+The **Housing Supply Index** measures the adequacy and quality of housing supply in a given province. It is derived inversely from the housing backlog data, operating on the premise that a higher backlog indicates a severe deficit in supply.
 
-## Data Sources
-- **Source A**: `IAHID_Master_Dataset.xlsx` (Total Backlog Percent, Backlog RTLH Percent via BPS)
-- **Source B**: PKP Dashboard
+## Calculation Methodology
+The calculation penalizes both the lack of homeownership and the prevalence of substandard housing (RTLH - Rumah Tidak Layak Huni).
 
-## Formula
-`Supply Index = 100 - [(0.60 × TotalBacklogPercent) + (0.40 × BacklogRTLHPercent)]`
-*The formula penalizes regions with high housing deficits (backlog) and inadequate housing quality (RTLH - Rumah Tidak Layak Huni).*
+### 1. Raw Supply Formula
+```text
+RawSupply = 100.0 - ((0.60 * BacklogOwnershipPercent) + 
+                     (0.40 * BacklogRTLHPercent))
+```
 
-## Interpretation
-A score approaching 100 indicates near-complete fulfillment of housing supply needs, with minimal backlog and high-quality dwelling structures. A lower score signifies a severe supply shortage or poor housing quality.
+### Components
+- **BacklogOwnershipPercent (60% Weight)**: The percentage of households that do not own a home. This is given the majority weight as it represents absolute lack of housing units.
+- **BacklogRTLHPercent (40% Weight)**: The percentage of households living in substandard housing. This represents qualitative supply deficits.
 
-## Limitations
-This index measures the *deficit* of supply rather than the absolute volume of new construction (housing starts). It does not differentiate between urban and rural supply dynamics.
+### 2. Final Normalization
+```text
+SupplyIndex = Normalize(RawSupply)
+```
+*Note: `Normalize()` represents Min-Max Normalization from 0 to 100.*
 
-## Academic Justification
-Housing supply in emerging economies is best measured by the deficit (backlog) rather than surplus inventory. The heavier weight (60%) on pure quantitative backlog reflects the immediate urgency of shelter, while the 40% weight on RTLH accounts for qualitative adequacy (UN-Habitat, 2018).
+## Rationale
+By establishing the index inversely from the backlog metrics, a score closer to 100 indicates optimal supply (low backlog), while a score closer to 0 indicates severe supply shortages (high backlog).
