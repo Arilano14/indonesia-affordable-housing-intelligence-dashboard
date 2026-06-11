@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { BookOpen, CheckCircle2, TrendingDown, Target } from 'lucide-react';
+import { BookOpen, CheckCircle2, TrendingDown, Target, Download } from 'lucide-react';
 import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
 import { CalculatedKPIs } from '@/lib/kpiEngine';
 
@@ -40,13 +40,27 @@ export default function ResearchPage() {
       {/* Title Header Section */}
       <div className="w-full bg-[#0B1B36] text-white">
         <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white flex items-center">
-            <BookOpen className="mr-4 text-[#00B3DF]" size={48} />
-            Research Findings
-          </h1>
-          <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
-            Applied Business Intelligence analysis of the Indonesian housing market, assessing affordability, ownership access, and policy interventions.
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white flex items-center">
+                <BookOpen className="mr-4 text-[#00B3DF]" size={48} />
+                Research Findings
+              </h1>
+              <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
+                Applied Business Intelligence analysis of the Indonesian housing market, assessing affordability, ownership access, and policy interventions.
+              </p>
+            </div>
+            <a 
+              href="/docs/academic_whitepaper.md" 
+              download="IAHID_Academic_Whitepaper.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#00B3DF] text-[#0B1B36] px-8 py-4 font-black hover:bg-white transition-colors whitespace-nowrap self-start md:self-center border-2 border-transparent hover:border-[#00B3DF]"
+            >
+              <Download size={24} />
+              DOWNLOAD WHITEPAPER
+            </a>
+          </div>
         </div>
       </div>
 

@@ -24,5 +24,5 @@ DemandIndex = Normalize(RawDemand)
 ```
 *Note: `Normalize()` represents Min-Max Normalization from 0 to 100.*
 
-## Rationale
+## Rational
 Using a weighted composite of normalized demographic indicators prevents severe zero-skewing. If raw population was used directly, extreme outliers (like West Java or East Java) would compress all other provinces (like Gorontalo or Maluku) to near-zero scores. By normalizing each indicator first, we maintain the structural relationships and relative demographic pressures of smaller provinces.

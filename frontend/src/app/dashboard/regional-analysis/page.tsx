@@ -10,6 +10,15 @@ import ChoroplethMap from '@/components/charts/ChoroplethMap';
 import { fetchProvinceData } from '@/lib/dataProvider';
 import { CalculatedKPIs } from '@/lib/kpiEngine';
 
+const DynamicData = ({ children, className = "text-[#00B3DF] border-[#00B3DF]/50" }: { children: React.ReactNode, className?: string }) => (
+  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
+    {children}
+    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+      Update Terakhir: Q3 2024
+    </span>
+  </span>
+);
+
 // Helpers for Traffic Light Colors (Mean-based)
 const getPositiveColor = (value: number, mean: number) => {
   if (value >= mean + 5) return 'bg-[#16A34A] text-white font-bold'; // Green (Lumayan jauh di atas rata-rata)
@@ -33,7 +42,9 @@ export default function RegionalAnalysisPage() {
   const [selectedYear, setSelectedYear] = useState("2024");
   const [yearOpen, setYearOpen] = useState(false);
   const [provA, setProvA] = useState("DKI Jakarta");
+  const [provAOpen, setProvAOpen] = useState(false);
   const [provB, setProvB] = useState("Jawa Barat");
+  const [provBOpen, setProvBOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -89,7 +100,9 @@ export default function RegionalAnalysisPage() {
 
   const mapData = displayProvinces.map(p => ({
     province: p.Province,
-    score: p.HousingScore
+    score: p.HousingScore,
+    mortgage: p.MortgageAccessibility,
+    demand: p.DemandIndex
   }));
 
   const provAData = displayProvinces.find(p => p.Province === provA) || displayProvinces[0] || {} as CalculatedKPIs;
@@ -102,6 +115,22 @@ export default function RegionalAnalysisPage() {
     { subject: 'Mortgage Access', A: provAData.MortgageAccessibility, B: provBData.MortgageAccessibility, fullMark: 100 },
     { subject: 'Demand Index', A: provAData.DemandIndex, B: provBData.DemandIndex, fullMark: 100 },
   ];
+
+  const generateComparativeInsight = () => {
+    if (!provAData.HousingScore || !provBData.HousingScore) return <></>;
+    const delta = provAData.HousingScore - provBData.HousingScore;
+    const pA = <DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{provAData.Province}</DynamicData>;
+    const pB = <DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{provBData.Province}</DynamicData>;
+    const diff = <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{Math.abs(delta).toFixed(1)}</DynamicData>;
+
+    if (delta > 5) {
+      return <>{pA} significantly outperforms {pB} in overall housing welfare by {diff} points.</>;
+    } else if (delta < -5) {
+      return <>{pB} significantly outperforms {pA} in overall housing welfare by {diff} points.</>;
+    } else {
+      return <>{pA} and {pB} exhibit near-identical housing market conditions, suggesting shared regional macroeconomic constraints with a marginal gap of {diff} points.</>;
+    }
+  };
 
   return (
     <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
@@ -125,9 +154,9 @@ export default function RegionalAnalysisPage() {
             <div className="w-2 bg-[#00B3DF] absolute left-0 top-0 bottom-0"></div>
             <div className="text-[#00B3DF] mt-1"><Info size={32} /></div>
             <div>
-              <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500 mb-2">Regional Insight</h3>
+              <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500 mb-2">Comparative Insight</h3>
               <p className="text-2xl font-bold text-gray-900 leading-snug">
-                &quot;Eastern Indonesia shows <span className="text-[#DC2626]">lower intelligence scores</span> and suffers from a <span className="text-[#DC2626]">significantly higher backlog</span> compared to Java, driven by infrastructure deficits.&quot;
+                &quot;{generateComparativeInsight()}&quot;
               </p>
             </div>
           </div>
@@ -160,12 +189,50 @@ export default function RegionalAnalysisPage() {
                 <p className="text-[12px] text-gray-500 mt-1 uppercase tracking-widest line-clamp-2">Province vs Province</p>
               </div>
               <div className="flex flex-col gap-2 mb-4 shrink-0">
-                <select className="w-full p-2 border border-gray-200 rounded text-sm font-bold bg-gray-50 text-gray-800" value={provA} onChange={(e) => setProvA(e.target.value)}>
-                  {displayProvinces.map(p => <option key={`A-${p.Province}`} value={p.Province}>{p.Province}</option>)}
-                </select>
-                <select className="w-full p-2 border border-gray-200 rounded text-sm font-bold bg-gray-50 text-gray-800" value={provB} onChange={(e) => setProvB(e.target.value)}>
-                  {displayProvinces.map(p => <option key={`B-${p.Province}`} value={p.Province}>{p.Province}</option>)}
-                </select>
+                <div className="relative z-[60]">
+                  <button 
+                    onClick={() => { setProvAOpen(!provAOpen); setProvBOpen(false); }}
+                    className={`w-full flex items-center justify-between p-2 border border-gray-200 rounded text-sm font-bold bg-gray-50 text-gray-800 focus:outline-none transition-colors ${provAOpen ? 'ring-2 ring-primary/20 border-primary' : 'hover:border-primary'}`}
+                  >
+                    <span className="truncate">{provA}</span>
+                    <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${provAOpen ? 'rotate-180 text-primary' : ''}`} />
+                  </button>
+                  {provAOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-xl overflow-y-auto max-h-60 custom-scrollbar z-[60]">
+                      {displayProvinces.map(p => (
+                        <button 
+                          key={`A-${p.Province}`} 
+                          onClick={() => { setProvA(p.Province); setProvAOpen(false); }}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${provA === p.Province ? 'bg-primary/10 text-primary font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'}`}
+                        >
+                          {p.Province}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="relative z-50">
+                  <button 
+                    onClick={() => { setProvBOpen(!provBOpen); setProvAOpen(false); }}
+                    className={`w-full flex items-center justify-between p-2 border border-gray-200 rounded text-sm font-bold bg-gray-50 text-gray-800 focus:outline-none transition-colors ${provBOpen ? 'ring-2 ring-[#16A34A]/20 border-[#16A34A]' : 'hover:border-[#16A34A]'}`}
+                  >
+                    <span className="truncate">{provB}</span>
+                    <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${provBOpen ? 'rotate-180 text-[#16A34A]' : ''}`} />
+                  </button>
+                  {provBOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-xl overflow-y-auto max-h-60 custom-scrollbar z-50">
+                      {displayProvinces.map(p => (
+                        <button 
+                          key={`B-${p.Province}`} 
+                          onClick={() => { setProvB(p.Province); setProvBOpen(false); }}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${provB === p.Province ? 'bg-[#16A34A]/10 text-[#16A34A] font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'}`}
+                        >
+                          {p.Province}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="relative w-full flex-1 min-h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -175,7 +242,7 @@ export default function RegionalAnalysisPage() {
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                     <Radar name={provA} dataKey="A" stroke="#00B3DF" fill="#00B3DF" fillOpacity={0.5} />
                     <Radar name={provB} dataKey="B" stroke="#16A34A" fill="#16A34A" fillOpacity={0.5} />
-                    <RechartsTooltip formatter={(value: number) => value ? Number(value).toFixed(2) : '0.00'} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} />
+                    <RechartsTooltip formatter={(value: number) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0.00'} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
@@ -193,7 +260,7 @@ export default function RegionalAnalysisPage() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} domain={[0, 100]} />
                     <YAxis dataKey="name" type="category" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#111827', fontWeight: 600 }} />
-                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} />
+                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
                     <Bar dataKey="score" fill="#16A34A" barSize={24} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -212,7 +279,7 @@ export default function RegionalAnalysisPage() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} domain={[0, 100]} />
                     <YAxis dataKey="name" type="category" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#111827', fontWeight: 600 }} />
-                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} />
+                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
                     <Bar dataKey="score" fill="#DC2626" barSize={24} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

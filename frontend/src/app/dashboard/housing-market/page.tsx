@@ -9,6 +9,15 @@ import { ArrowRight, Info } from 'lucide-react';
 import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
 import { CalculatedKPIs } from '@/lib/kpiEngine';
 
+const DynamicData = ({ children, className = "text-accent border-accent/50" }: { children: React.ReactNode, className?: string }) => (
+  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
+    {children}
+    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+      Update Terakhir: Q3 2024
+    </span>
+  </span>
+);
+
 export default function HousingMarketPage() {
   const [sortField, setSortField] = useState('AccessibilityIndex');
   const [trendData, setTrendData] = useState<NationalTrendData[]>([]);
@@ -75,6 +84,20 @@ export default function HousingMarketPage() {
   });
 
   const topAccessibility = [...provinces].sort((a, b) => b.AccessibilityIndex - a.AccessibilityIndex)[0];
+  const highestBacklog = [...provinces].sort((a, b) => b.TotalBacklogPercent - a.TotalBacklogPercent)[0];
+
+  const generateBacklogInsight = () => {
+    if (!highestBacklog) return <></>;
+    const prov = <DynamicData>{highestBacklog.Province}</DynamicData>;
+    const backlog = <DynamicData>{highestBacklog.TotalBacklogPercent.toFixed(1)}%</DynamicData>;
+    if (highestBacklog.TotalBacklogPercent > 30) {
+      return <>Province {prov} faces a critical housing deficit. With {backlog} backlog, urgent supply-side interventions are mandated to address the severe shortage.</>;
+    } else if (highestBacklog.TotalBacklogPercent <= 10) {
+      return <>Province {prov} demonstrates high housing resilience with a minimal backlog of {backlog}, outperforming the national benchmark significantly.</>;
+    } else {
+      return <>Province {prov} reports the highest national backlog at {backlog}. While not at critical crisis levels (&gt;30%), sustained supply-demand imbalances require continued policy focus.</>;
+    }
+  };
 
   const getPositiveColor = (val: number) => {
     if (val >= 75) return 'bg-[#16A34A] text-white'; // Green
@@ -112,7 +135,7 @@ export default function HousingMarketPage() {
             </div>
             <h3 className="text-[12px] uppercase tracking-widest font-bold text-accent mb-3">Key Insight</h3>
             <p className="text-2xl font-light leading-snug max-w-4xl">
-              &quot;Aksesibilitas perumahan tertinggi berada di <span className="font-bold">{topAccessibility?.Province} (Skor: {topAccessibility?.AccessibilityIndex?.toFixed(1)})</span> didorong oleh tingginya PDRB per kapita dan rendahnya kemiskinan yang difasilitasi oleh indikator perbankan nasional.&quot;
+              &quot;{generateBacklogInsight()}&quot;
             </p>
           </div>
 
@@ -128,10 +151,19 @@ export default function HousingMarketPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                    <XAxis type="number" dataKey="gdp" name="GDP/Capita" unit="M" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
-                    <YAxis type="number" dataKey="poverty" name="Poverty Rate" unit="%" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
+                    <XAxis type="number" dataKey="gdp" name="GDP/Capita" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} tickFormatter={(val) => `Rp ${val.toLocaleString('id-ID')} Juta`} />
+                    <YAxis type="number" dataKey="poverty" name="Poverty Rate" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} tickFormatter={(val) => `${val.toLocaleString('id-ID')}%`} />
                     <ZAxis type="category" dataKey="province" name="Province" />
-                    <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#00B3DF' }} />
+                    <RechartsTooltip 
+                      cursor={{ strokeDasharray: '3 3' }} 
+                      contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} 
+                      itemStyle={{ color: '#00B3DF' }} 
+                      formatter={(value: any, name: string) => {
+                        if (name === 'GDP/Capita') return [`Rp ${Number(value).toLocaleString('id-ID')} Juta`, name];
+                        if (name === 'Poverty Rate') return [`${Number(value).toLocaleString('id-ID')}%`, name];
+                        return [typeof value === 'number' ? value.toLocaleString('id-ID') : value, name];
+                      }}
+                    />
                     <Scatter name="Provinces" data={scatterData} fill="#005587" shape="circle" line={false}>
                     </Scatter>
                   </ScatterChart>
@@ -161,7 +193,11 @@ export default function HousingMarketPage() {
                       <XAxis dataKey="Province" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 11, fill: '#4B5563' }} angle={-45} textAnchor="end" height={100}/>
                       <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
                       <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
-                      <RechartsTooltip contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
+                      <RechartsTooltip 
+                        contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} 
+                        itemStyle={{ color: '#fff' }}
+                        formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]}
+                      />
                       <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '13px', fontWeight: 600 }} />
                       <Bar yAxisId="left" dataKey="SupplyIndex" name="Supply Index" fill="#00B3DF" barSize={16} />
                       <Line yAxisId="right" type="monotone" dataKey="DemandIndex" name="Demand Index" stroke="#DC2626" strokeWidth={3} dot={{ r: 3 }} />
@@ -197,7 +233,11 @@ export default function HousingMarketPage() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                     <XAxis dataKey="Year" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10} />
                     <YAxis domain={['dataMin - 2', 'dataMax + 2']} axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} 
+                      itemStyle={{ color: '#fff' }}
+                      formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]}
+                    />
                     {showBacklog && <Line type="monotone" dataKey="TotalBacklogPercent" name="Backlog %" stroke="#DC2626" strokeWidth={4} dot={{ r: 4 }} activeDot={{ r: 8 }} />}
                     {showInterestRate && <Line type="monotone" dataKey="InterestRate" name="Interest Rate %" stroke="#005587" strokeWidth={4} dot={{ r: 4 }} activeDot={{ r: 8 }} />}
                   </LineChart>
@@ -222,7 +262,7 @@ export default function HousingMarketPage() {
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
                       <XAxis type="number" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} domain={[0, 100]} />
                       <YAxis dataKey="Province" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#4B5563', fontWeight: 600 }} width={120}/>
-                      <RechartsTooltip cursor={{fill: '#F9FAFB'}} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
+                      <RechartsTooltip cursor={{fill: '#F9FAFB'}} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} itemStyle={{ color: '#fff' }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
                       <Bar dataKey="MortgageAccessibility" name="Mortgage Score" barSize={12}>
                         {[...provinces].sort((a,b)=>b.MortgageAccessibility-a.MortgageAccessibility).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.MortgageAccessibility >= 75 ? '#16A34A' : entry.MortgageAccessibility >= 50 ? '#FBBF24' : '#DC2626'} />

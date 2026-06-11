@@ -8,6 +8,15 @@ import { ArrowRight, ShieldAlert, Zap, TrendingDown, Target, Info } from 'lucide
 import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
 import { CalculatedKPIs } from '@/lib/kpiEngine';
 
+const DynamicData = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
+    {children}
+    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+      Update Terakhir: Q3 2024
+    </span>
+  </span>
+);
+
 const simulationData = [
   { policy: 'Lower Mortgage Rate by 1%', cost: 'Medium', impactOwnership: '+6.2%', impactAccessibility: '+12.5%', timeframe: 'Short-term' },
   { policy: 'Subsidized Land Bank for Developers', cost: 'High', impactOwnership: '+2.1%', impactAccessibility: '+18.0%', timeframe: 'Long-term' },
@@ -65,28 +74,34 @@ export default function PolicyInsightsPage() {
 
   // Dynamic Rule Engine for Recommendations
   const rules = [];
-  const avgAccessibility = provinces.reduce((sum, p) => sum + p.AccessibilityIndex, 0) / provinces.length;
-  const avgPoverty = provinces.reduce((sum, p) => sum + p.PovertyRate, 0) / provinces.length;
-  const avgBacklog = provinces.reduce((sum, p) => sum + p.TotalBacklogPercent, 0) / provinces.length;
-  const avgOwnership = provinces.reduce((sum, p) => sum + p.OwnershipRate, 0) / provinces.length;
-  const avgMortgageScore = provinces.reduce((sum, p) => sum + p.MortgageAccessibility, 0) / provinces.length;
+  
+  const avgBacklog = provinces.reduce((sum, p) => sum + p.TotalBacklogPercent, 0) / (provinces.length || 1);
 
-  if (avgAccessibility < 50 && avgPoverty > 10.0) {
-    rules.push({ title: 'Accessibility Support', icon: Target, desc: `Aksesibilitas berada di bawah 50 dan kemiskinan > 10%. Fokus pada perluasan subsidi perumahan berbasis masyarakat berpenghasilan rendah.`, color: 'text-[#005587]' });
-  }
-  if (avgBacklog > 10 && avgOwnership < 80) {
-    rules.push({ title: 'Backlog Reduction', icon: TrendingDown, desc: `Backlog persentase tinggi (>10%). Prioritaskan investasi perumahan umum dan renovasi RTLH di provinsi padat penduduk.`, color: 'text-[#16A34A]' });
-  }
-  if (avgMortgageScore < 60) {
-    rules.push({ title: 'Mortgage Support', icon: Zap, desc: `Aksesibilitas KPR berada di bawah ambang batas (60). Perluas program KPR subsidi (FLPP) dan jajaki skema pembiayaan alternatif.`, color: 'text-[#00B3DF]' });
-  }
-  if (avgAccessibility < 40) {
-    rules.push({ title: 'Price Control', icon: ShieldAlert, desc: `Krisis aksesibilitas sangat parah (<40). Terapkan regulasi tanah telantar dan pajak progresif pada properti sekunder.`, color: 'text-[#DC2626]' });
+  const highBacklogProv = [...provinces].sort((a,b) => b.TotalBacklogPercent - a.TotalBacklogPercent)[0];
+  const lowAccessProv = [...provinces].sort((a,b) => a.AccessibilityIndex - b.AccessibilityIndex)[0];
+  const lowQualityProv = [...provinces].sort((a,b) => a.DecentHousingRate - b.DecentHousingRate)[0];
+  const highScoreProv = [...provinces].sort((a,b) => b.HousingScore - a.HousingScore)[0];
+
+  if (highBacklogProv && highBacklogProv.TotalBacklogPercent > 30 && highBacklogProv.AccessibilityIndex < 40) {
+    rules.push({ title: 'Priority: High', icon: Target, desc: <>Expand subsidized financing (FLPP/SSB) in <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.Province}</DynamicData>. The dual challenge of high backlog (<DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.TotalBacklogPercent.toFixed(1)}%</DynamicData>) and low affordability (<DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.AccessibilityIndex.toFixed(1)}</DynamicData>) requires heavy government intervention.</>, color: 'text-[#DC2626]' });
+  } else if (highBacklogProv && highBacklogProv.TotalBacklogPercent > 30) {
+    rules.push({ title: 'Priority: High', icon: TrendingDown, desc: <>Prioritize expansion of affordable housing supply programs in <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.Province}</DynamicData>, focusing on low-income households and reducing the <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.TotalBacklogPercent.toFixed(1)}%</DynamicData> backlog.</>, color: 'text-[#DC2626]' });
   }
 
-  // Ensure we have at least 4 rules to display nicely
+  if (lowQualityProv && lowQualityProv.DecentHousingRate < 60 && lowQualityProv.OwnershipRate > 75) {
+    rules.push({ title: 'Priority: Medium', icon: ShieldAlert, desc: <>Shift budget allocation from new construction to Bantuan Stimulan Perumahan Swadaya (BSPS) in <DynamicData className="text-[#D97706] border-[#D97706]/50">{lowQualityProv.Province}</DynamicData>. Ownership is high (<DynamicData className="text-[#D97706] border-[#D97706]/50">{lowQualityProv.OwnershipRate.toFixed(1)}%</DynamicData>), but housing quality is critically low.</>, color: 'text-[#D97706]' });
+  }
+
+  if (lowAccessProv && lowAccessProv.AccessibilityIndex < 40) {
+    rules.push({ title: 'Priority: High', icon: Zap, desc: <>Consider strengthening mortgage affordability schemes through subsidized financing programs and interest-rate support mechanisms in <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{lowAccessProv.Province}</DynamicData>.</>, color: 'text-[#DC2626]' });
+  }
+
+  if (highScoreProv && highScoreProv.HousingScore > 80) {
+    rules.push({ title: 'Priority: Low', icon: Info, desc: <>Maintain current policy trajectories in <DynamicData className="text-[#16A34A] border-[#16A34A]/50">{highScoreProv.Province}</DynamicData>. Focus on sustainable urban planning and green housing initiatives.</>, color: 'text-[#16A34A]' });
+  }
+
   while (rules.length < 4) {
-    rules.push({ title: 'Monitoring Required', icon: Info, desc: 'Current metrics are stable. Continue monitoring key indicators.', color: 'text-gray-500' });
+    rules.push({ title: 'Monitoring Required', icon: Info, desc: <>Current metrics are stable. Continue monitoring key indicators.</>, color: 'text-gray-500' });
   }
 
   return (
@@ -111,7 +126,7 @@ export default function PolicyInsightsPage() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 transform rotate-45 -mr-20 -mt-20"></div>
             <h3 className="text-[12px] uppercase tracking-widest font-bold text-[#00B3DF] mb-4">Final Executive Recommendation</h3>
             <p className="text-2xl md:text-3xl font-light leading-snug max-w-5xl">
-              &quot;Tantangan perumahan Indonesia kini lebih didorong oleh <span className="font-bold">tekanan aksesibilitas perumahan</span> di provinsi berkembang pesat, bukan sekadar defisit pasokan absolut. Kebijakan yang difokuskan pada <span className="font-bold border-b-2 border-[#00B3DF]">subsidi akses KPR dan pengendalian spekulasi tanah</span> diproyeksikan memberikan dampak tertinggi.&quot;
+              &quot;Based on the national evaluation, the dual challenge of high backlog (<DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{avgBacklog?.toFixed(1) || 0}%</DynamicData>) and accessibility pressures requires targeted interventions. Policies must adapt dynamically: shift supply focus to <DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{highBacklogProv?.Province || 'critical zones'}</DynamicData>, while applying mortgage subsidies primarily in areas like <DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{lowAccessProv?.Province || 'low-access regions'}</DynamicData>.&quot;
             </p>
           </div>
 
@@ -188,7 +203,7 @@ export default function PolicyInsightsPage() {
                     <ZAxis type="category" dataKey="province" name="Province" />
                     <ReferenceLine x={50} stroke="#9CA3AF" strokeDasharray="5 5" />
                     <ReferenceLine y={25} stroke="#9CA3AF" strokeDasharray="5 5" />
-                    <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#00B3DF' }} />
+                    <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#00B3DF' }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
                     <Scatter name="Provinces" data={priorityMatrixData} fill="#005587" shape="circle">
                       {priorityMatrixData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.status === 'High Priority' ? '#DC2626' : entry.status === 'Medium Priority' ? '#D97706' : '#16A34A'} />

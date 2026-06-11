@@ -9,6 +9,15 @@ import { Info, TrendingUp, AlertTriangle, ArrowDownRight } from 'lucide-react';
 import { fetchProvinceData } from '@/lib/dataProvider';
 import { CalculatedKPIs } from '@/lib/kpiEngine';
 
+const DynamicData = ({ children, className = "text-primary border-primary/50" }: { children: React.ReactNode, className?: string }) => (
+  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
+    {children}
+    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+      Update Terakhir: Q3 2024
+    </span>
+  </span>
+);
+
 // Regression Data (Mocked as standard JS doesn't have an RF library)
 const regressionData = [
   { driver: 'Poverty Rate', importance: 42 },
@@ -98,6 +107,21 @@ export default function HousingDriversPage() {
     { year: '2024', gdp: 5.0, poverty: Number(avgPoverty), ownership: 84.0 },
   ];
 
+  const lowestAccessibility = [...provinces].sort((a, b) => a.AccessibilityIndex - b.AccessibilityIndex)[0];
+  
+  const generateMortgageInsight = () => {
+    if (!lowestAccessibility) return <></>;
+    const prov = <DynamicData>{lowestAccessibility.Province}</DynamicData>;
+    const pov = <DynamicData>{lowestAccessibility.PovertyRate.toFixed(1)}%</DynamicData>;
+    const acc = <DynamicData>{lowestAccessibility.AccessibilityIndex.toFixed(1)}</DynamicData>;
+
+    if (lowestAccessibility.AccessibilityIndex < 40) {
+      return <>Macroeconomic headwinds in {prov} heavily restrict homeownership. A high poverty rate of {pov} combined with low regional GDP drastically limits mortgage feasibility, resulting in a critical accessibility score of {acc}.</>;
+    } else {
+      return <>Pertumbuhan PDRB per Kapita memiliki korelasi positif yang kuat terhadap suplai perumahan formal, sementara Tingkat Kemiskinan secara langsung membatasi aksesibilitas.</>;
+    }
+  };
+
   return (
     <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
       
@@ -122,7 +146,7 @@ export default function HousingDriversPage() {
             <div>
               <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500 mb-2">Business Insight</h3>
               <p className="text-2xl font-bold text-gray-900 leading-snug">
-                &quot;Pertumbuhan PDRB per Kapita (<span className="text-primary">GDP/Cap</span>) memiliki korelasi positif yang kuat terhadap suplai perumahan formal, sementara <span className="text-primary">Tingkat Kemiskinan</span> secara langsung membatasi aksesibilitas.&quot;
+                &quot;{generateMortgageInsight()}&quot;
               </p>
             </div>
           </div>
@@ -206,7 +230,7 @@ export default function HousingDriversPage() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} domain={[0, 50]} />
                     <YAxis dataKey="driver" type="category" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#111827', fontWeight: 600 }} />
-                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} />
+                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#fff' }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
                     <Bar dataKey="importance" fill="#005587" barSize={32} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -225,7 +249,7 @@ export default function HousingDriversPage() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                     <XAxis dataKey="year" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} />
+                    <RechartsTooltip contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} itemStyle={{ color: '#fff' }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
                     <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 600 }} />
                     <Line type="monotone" dataKey="gdp" name="GDP Growth" stroke="#16A34A" strokeWidth={4} dot={{r:4}} />
                     <Line type="monotone" dataKey="ownership" name="Ownership Rate" stroke="#005587" strokeWidth={4} dot={{r:4}} />

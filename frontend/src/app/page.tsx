@@ -5,6 +5,16 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ArrowRight, MapPin, AlertCircle, TrendingUp, Key } from 'lucide-react';
 import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
 import { CalculatedKPIs } from '@/lib/kpiEngine';
+import ChoroplethMap from '@/components/charts/ChoroplethMap';
+
+const DynamicData = ({ children, className = "text-accent border-accent/50" }: { children: React.ReactNode, className?: string }) => (
+  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
+    {children}
+    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+      Update Terakhir: Q3 2024
+    </span>
+  </span>
+);
 
 export default function OverviewPage() {
   const [trendData, setTrendData] = useState<NationalTrendData[]>([]);
@@ -47,8 +57,22 @@ export default function OverviewPage() {
     return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
   }
 
-  // Calculate National KPIs from the latest trend data
-  const latestNational = trendData[trendData.length - 1] || { HousingScore: 0, OwnershipRate: 0, TotalBacklogPercent: 0, Population: 0 };
+  const latestNational = trendData[trendData.length - 1] || { HousingScore: 0, AccessibilityIndex: 0, OwnershipRate: 0, TotalBacklogPercent: 0, InterestRate: 0 };
+  
+  const generateNationalInsight = () => {
+    const score = latestNational.HousingScore || 0;
+    const backlog = latestNational.TotalBacklogPercent || 0;
+    
+    if (score < 50) {
+      return <>National housing conditions indicate systemic challenges. Policy focus should prioritize affordability enhancement, backlog reduction, and acceleration of housing delivery.</>;
+    } else if (backlog > 25) {
+      return <>Current backlog levels suggest a structural supply-demand imbalance. Additional public-private housing partnerships (KPBU) may be required.</>;
+    } else if (score >= 75) {
+      return <>National housing conditions demonstrate strong resilience with a Housing Intelligence Score of <DynamicData>{score.toFixed(1)}</DynamicData>, reflecting effective policy interventions in homeownership and accessibility.</>;
+    } else {
+      return <>The national housing market maintains a moderate stability with an average score of <DynamicData>{score.toFixed(1)}</DynamicData>. While ownership rates hover around <DynamicData>{latestNational.OwnershipRate?.toFixed(1)}%</DynamicData>, targeted supply strategies remain crucial to address the remaining <DynamicData>{backlog.toFixed(1)}%</DynamicData> backlog.</>;
+    }
+  };
   const prevNational = trendData[trendData.length - 2] || latestNational;
   const scoreYoY = prevNational.HousingScore > 0 ? (((latestNational.HousingScore - prevNational.HousingScore) / prevNational.HousingScore) * 100).toFixed(1) : "0.0";
 
@@ -57,6 +81,16 @@ export default function OverviewPage() {
   const highestBacklog = [...provinces].sort((a, b) => b.TotalBacklogPercent - a.TotalBacklogPercent)[0];
   const highestDemand = [...provinces].sort((a, b) => b.DemandIndex - a.DemandIndex)[0];
   const highestOwnership = [...provinces].sort((a, b) => b.OwnershipRate - a.OwnershipRate)[0];
+
+  const mapData = provinces.map(p => ({
+    province: p.Province,
+    score: p.HousingScore,
+    mortgage: p.AccessibilityIndex,
+    demand: p.DemandIndex
+  }));
+
+  const top5Provinces = [...mapData].sort((a, b) => b.score - a.score).slice(0, 5);
+  const bottom5Provinces = [...mapData].sort((a, b) => a.score - b.score).slice(0, 5);
 
   return (
     <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
@@ -172,6 +206,55 @@ export default function OverviewPage() {
         </div>
       </div>
 
+      {/* Geospatial Intelligence Section */}
+      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 pb-16">
+        <div className="flex justify-between items-end mb-8 border-b-2 border-gray-100 pb-4">
+          <div>
+            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">Geospatial Intelligence Dashboard</h3>
+            <p className="text-sm font-medium text-gray-500 mt-1">Distribusi Housing Intelligence Score di 38 Provinsi</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3">
+            <ChoroplethMap data={mapData} />
+          </div>
+          
+          {/* Ranking Panel */}
+          <div className="lg:col-span-1 flex flex-col space-y-6">
+            <div className="bg-white border border-gray-200 p-6 shadow-sm">
+              <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Top 5 Provinces</h4>
+              <div className="flex flex-col space-y-3">
+                {top5Provinces.map((p, i) => (
+                  <div key={p.province} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">{i+1}</div>
+                      <span className="text-sm font-bold text-gray-900 truncate max-w-[120px]">{p.province}</span>
+                    </div>
+                    <span className="text-sm font-bold text-emerald-600">{p.score.toFixed(1)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 p-6 shadow-sm">
+              <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Bottom 5 Provinces</h4>
+              <div className="flex flex-col space-y-3">
+                {bottom5Provinces.map((p, i) => (
+                  <div key={p.province} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold">{38-i}</div>
+                      <span className="text-sm font-bold text-gray-900 truncate max-w-[120px]">{p.province}</span>
+                    </div>
+                    <span className="text-sm font-bold text-red-600">{p.score.toFixed(1)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Executive Summary */}
       <div className="max-w-[1600px] mx-auto px-6 xl:px-12 pb-16">
         <div className="bg-primary text-white p-10 md:p-16 relative overflow-hidden">
@@ -180,7 +263,7 @@ export default function OverviewPage() {
           
           <h3 className="text-[12px] uppercase tracking-widest font-bold text-accent mb-4">Executive Summary</h3>
           <p className="text-2xl md:text-3xl font-light leading-snug max-w-4xl">
-            &quot;Tingkat kepemilikan rumah mencapai rata-rata {latestNational.OwnershipRate?.toFixed(1)}%, sementara backlog nasional tercatat sebesar {latestNational.TotalBacklogPercent?.toFixed(1)}% dari total rumah tangga, menekankan pentingnya strategi suplai yang terarah.&quot;
+            &quot;{generateNationalInsight()}&quot;
           </p>
         </div>
       </div>
