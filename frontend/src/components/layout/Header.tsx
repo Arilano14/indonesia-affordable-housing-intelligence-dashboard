@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowRight, ChevronDown, MapPin, Calendar, Menu, X, Search, Globe } from 'lucide-react';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 const PROVINCES = [
   "Aceh", "Bali", "Banten", "Bengkulu",
@@ -38,23 +39,60 @@ export function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+  const { lang, setLang } = useLanguage();
 
   return (
     <header ref={headerRef} className="w-full flex flex-col font-sans border-b border-gray-200 sticky top-0 z-50 bg-[#F4F4F4] relative">
       {/* Top Utility Bar */}
-      <div className="h-auto md:h-24 bg-[#F4F4F4] flex flex-col md:flex-row items-center justify-between px-6 xl:px-12 py-4 md:py-0">
+      <div className="h-auto md:h-24 bg-[#F4F4F4] flex flex-col md:flex-row items-center justify-between px-6 xl:px-12 py-4 md:py-0 w-full overflow-hidden">
         
-        <div className="flex items-center justify-between w-full md:w-auto">
-          <div className="flex items-center space-x-4 md:space-x-5">
+        <div className="flex items-center justify-between w-full md:w-auto min-w-0">
+          <div className="flex items-center space-x-4 md:space-x-5 min-w-0">
             <img src="/logo.png" alt="IAHID Logo" className="h-10 md:h-12 w-auto object-contain shrink-0" />
-            <div className="flex flex-col">
-              <span className="font-bold text-lg md:text-2xl leading-tight tracking-tight text-[#111827] line-clamp-1">Indonesia Affordable Housing Intelligence</span>
-              <span className="text-[10px] md:text-[12px] text-gray-500 uppercase tracking-widest mt-0.5 md:mt-1">Ministry of Public Works and Housing</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-lg md:text-2xl leading-tight tracking-tight text-[#111827] truncate">Indonesia Affordable Housing Intelligence</span>
+              <span className="text-[10px] md:text-[12px] text-gray-500 uppercase tracking-widest mt-0.5 md:mt-1 truncate">Ministry of Public Works and Housing</span>
             </div>
           </div>
-          <button className="md:hidden text-primary" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button className="md:hidden text-primary shrink-0 ml-4" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
+        </div>
+
+        {/* Desktop Language Toggle */}
+        <div className="hidden md:flex items-center gap-2 bg-white px-2 py-1 border border-gray-200 rounded shadow-sm shrink-0 ml-8">
+          <button 
+            onClick={() => setLang('en')}
+            className={`px-2 py-1 text-xs font-bold font-sans ${lang === 'en' ? 'bg-black text-white' : 'bg-transparent text-gray-500 hover:text-black'} transition-colors rounded`}
+          >
+            EN
+          </button>
+          <span className="text-gray-300">|</span>
+          <button 
+            onClick={() => setLang('id')}
+            className={`px-2 py-1 text-xs font-bold font-sans ${lang === 'id' ? 'bg-black text-white' : 'bg-transparent text-gray-500 hover:text-black'} transition-colors rounded`}
+          >
+            IND
+          </button>
+        </div>
+
+        {/* Mobile Language Toggle */}
+        <div className={`w-full flex justify-end mt-4 md:hidden transition-all ${mobileMenuOpen ? 'block' : 'hidden'}`}>
+          <div className="flex items-center gap-2 bg-white px-2 py-1 border border-gray-200 rounded shadow-sm">
+            <button 
+              onClick={() => setLang('en')}
+              className={`px-2 py-1 text-xs font-bold font-sans ${lang === 'en' ? 'bg-black text-white' : 'bg-transparent text-gray-500 hover:text-black'} transition-colors rounded`}
+            >
+              EN
+            </button>
+            <span className="text-gray-300">|</span>
+            <button 
+              onClick={() => setLang('id')}
+              className={`px-2 py-1 text-xs font-bold font-sans ${lang === 'id' ? 'bg-black text-white' : 'bg-transparent text-gray-500 hover:text-black'} transition-colors rounded`}
+            >
+              IND
+            </button>
+          </div>
         </div>
       </div>
 
