@@ -4,32 +4,22 @@ import React, { useEffect, useState } from 'react';
 import { 
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ZAxis, ReferenceLine, PieChart, Pie, Cell
 } from 'recharts';
-import { ArrowRight, ShieldAlert, Zap, TrendingDown, Target, Info } from 'lucide-react';
 import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
-import { CalculatedKPIs } from '@/lib/kpiEngine';
-
-const DynamicData = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
-    {children}
-    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
-      Update Terakhir: Q3 2024
-    </span>
-  </span>
-);
+import { CalculatedKPIs, getTrafficLightColor } from '@/lib/kpiEngine';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 const simulationData = [
-  { policy: 'Lower Mortgage Rate by 1%', cost: 'Medium', impactOwnership: '+6.2%', impactAccessibility: '+12.5%', timeframe: 'Short-term' },
-  { policy: 'Subsidized Land Bank for Developers', cost: 'High', impactOwnership: '+2.1%', impactAccessibility: '+18.0%', timeframe: 'Long-term' },
-  { policy: 'Expand Public Housing Supply', cost: 'Very High', impactOwnership: '+8.5%', impactAccessibility: '+5.0%', timeframe: 'Long-term' },
-  { policy: 'Tax Relief for First-Time Buyers', cost: 'Medium', impactOwnership: '+4.0%', impactAccessibility: '+8.0%', timeframe: 'Short-term' },
+  { policy: 'Lower Mortgage Rate by 1%', policyId: 'Penurunan Suku Bunga KPR 1%', cost: 'Medium', costId: 'Menengah', impactOwnership: '+6.2%', impactAccessibility: '+12.5%', timeframe: 'Short-term' },
+  { policy: 'Subsidized Land Bank for Developers', policyId: 'Bank Tanah Bersubsidi untuk Pengembang', cost: 'High', costId: 'Tinggi', impactOwnership: '+2.1%', impactAccessibility: '+18.0%', timeframe: 'Long-term' },
+  { policy: 'Expand Public Housing Supply', policyId: 'Perluasan Pasokan Perumahan Publik', cost: 'Very High', costId: 'Sangat Tinggi', impactOwnership: '+8.5%', impactAccessibility: '+5.0%', timeframe: 'Long-term' },
+  { policy: 'Tax Relief for First-Time Buyers', policyId: 'Keringanan Pajak bagi Pembeli Pertama', cost: 'Medium', costId: 'Menengah', impactOwnership: '+4.0%', impactAccessibility: '+8.0%', timeframe: 'Short-term' },
 ];
-
-const GAUGE_COLORS = ['#D97706', '#E5E7EB']; // Warning Orange
 
 export default function PolicyInsightsPage() {
   const [provinces, setProvinces] = useState<CalculatedKPIs[]>([]);
   const [nationalTrend, setNationalTrend] = useState<NationalTrendData[]>([]);
   const [loading, setLoading] = useState(true);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     async function loadData() {
@@ -47,7 +37,7 @@ export default function PolicyInsightsPage() {
   }, []);
 
   if (loading) {
-    return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
+    return <div className="w-full h-screen flex items-center justify-center font-serif text-lg">Generating Policy Scenarios...</div>;
   }
 
   const latestNational = nationalTrend[nationalTrend.length - 1] || { HousingScore: 65 };
@@ -56,7 +46,6 @@ export default function PolicyInsightsPage() {
     { name: 'Empty', value: 100 - latestNational.HousingScore },
   ];
 
-  // Build Priority Matrix Data
   const priorityMatrixData = provinces.map(p => {
     let status = 'Low Priority';
     if (p.RiskLevel === 'Critical') status = 'High Priority';
@@ -72,73 +61,86 @@ export default function PolicyInsightsPage() {
 
   const priorityTableData = [...priorityMatrixData].sort((a, b) => b.backlog * (100 - b.accessibility) - a.backlog * (100 - a.accessibility));
 
-  // Dynamic Rule Engine for Recommendations
-  const rules = [];
-  
   const avgBacklog = provinces.reduce((sum, p) => sum + p.TotalBacklogPercent, 0) / (provinces.length || 1);
-
   const highBacklogProv = [...provinces].sort((a,b) => b.TotalBacklogPercent - a.TotalBacklogPercent)[0];
   const lowAccessProv = [...provinces].sort((a,b) => a.AccessibilityIndex - b.AccessibilityIndex)[0];
   const lowQualityProv = [...provinces].sort((a,b) => a.DecentHousingRate - b.DecentHousingRate)[0];
   const highScoreProv = [...provinces].sort((a,b) => b.HousingScore - a.HousingScore)[0];
 
+  const rules = [];
   if (highBacklogProv && highBacklogProv.TotalBacklogPercent > 30 && highBacklogProv.AccessibilityIndex < 40) {
-    rules.push({ title: 'Priority: High', icon: Target, desc: <>Expand subsidized financing (FLPP/SSB) in <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.Province}</DynamicData>. The dual challenge of high backlog (<DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.TotalBacklogPercent.toFixed(1)}%</DynamicData>) and low affordability (<DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.AccessibilityIndex.toFixed(1)}</DynamicData>) requires heavy government intervention.</>, color: 'text-[#DC2626]' });
+    rules.push({ 
+      title: lang === 'en' ? 'Priority: High (Intervention Required)' : 'Prioritas: Tinggi (Intervensi Dibutuhkan)', 
+      desc: lang === 'en' ? `Expand subsidized financing (FLPP/SSB) in ${highBacklogProv.Province}. The dual challenge of high backlog (${highBacklogProv.TotalBacklogPercent.toFixed(1)}%) and low affordability (${highBacklogProv.AccessibilityIndex.toFixed(1)}) requires heavy government intervention.` : `Perluas pembiayaan bersubsidi (FLPP/SSB) di ${highBacklogProv.Province}. Tantangan ganda berupa backlog tinggi (${highBacklogProv.TotalBacklogPercent.toFixed(1)}%) dan keterjangkauan rendah (${highBacklogProv.AccessibilityIndex.toFixed(1)}) memerlukan intervensi pemerintah yang masif.`
+    });
   } else if (highBacklogProv && highBacklogProv.TotalBacklogPercent > 30) {
-    rules.push({ title: 'Priority: High', icon: TrendingDown, desc: <>Prioritize expansion of affordable housing supply programs in <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.Province}</DynamicData>, focusing on low-income households and reducing the <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{highBacklogProv.TotalBacklogPercent.toFixed(1)}%</DynamicData> backlog.</>, color: 'text-[#DC2626]' });
+    rules.push({ 
+      title: lang === 'en' ? 'Priority: High (Supply Focus)' : 'Prioritas: Tinggi (Fokus Pasokan)', 
+      desc: lang === 'en' ? `Prioritize expansion of affordable housing supply programs in ${highBacklogProv.Province}, focusing on low-income households and reducing the ${highBacklogProv.TotalBacklogPercent.toFixed(1)}% backlog.` : `Prioritaskan perluasan program pasokan perumahan terjangkau di ${highBacklogProv.Province}, dengan fokus pada rumah tangga berpenghasilan rendah dan mengurangi backlog sebesar ${highBacklogProv.TotalBacklogPercent.toFixed(1)}%.`
+    });
   }
 
   if (lowQualityProv && lowQualityProv.DecentHousingRate < 60 && lowQualityProv.OwnershipRate > 75) {
-    rules.push({ title: 'Priority: Medium', icon: ShieldAlert, desc: <>Shift budget allocation from new construction to Bantuan Stimulan Perumahan Swadaya (BSPS) in <DynamicData className="text-[#D97706] border-[#D97706]/50">{lowQualityProv.Province}</DynamicData>. Ownership is high (<DynamicData className="text-[#D97706] border-[#D97706]/50">{lowQualityProv.OwnershipRate.toFixed(1)}%</DynamicData>), but housing quality is critically low.</>, color: 'text-[#D97706]' });
+    rules.push({ 
+      title: lang === 'en' ? 'Priority: Medium (Quality Focus)' : 'Prioritas: Menengah (Fokus Kualitas)', 
+      desc: lang === 'en' ? `Shift budget allocation from new construction to Bantuan Stimulan Perumahan Swadaya (BSPS) in ${lowQualityProv.Province}. Ownership is high (${lowQualityProv.OwnershipRate.toFixed(1)}%), but housing quality is critically low.` : `Alihkan alokasi anggaran dari pembangunan baru ke Bantuan Stimulan Perumahan Swadaya (BSPS) di ${lowQualityProv.Province}. Kepemilikan tinggi (${lowQualityProv.OwnershipRate.toFixed(1)}%), tetapi kualitas perumahan sangat rendah.`
+    });
   }
 
   if (lowAccessProv && lowAccessProv.AccessibilityIndex < 40) {
-    rules.push({ title: 'Priority: High', icon: Zap, desc: <>Consider strengthening mortgage affordability schemes through subsidized financing programs and interest-rate support mechanisms in <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{lowAccessProv.Province}</DynamicData>.</>, color: 'text-[#DC2626]' });
+    rules.push({ 
+      title: lang === 'en' ? 'Priority: High (Financial Access)' : 'Prioritas: Tinggi (Akses Finansial)', 
+      desc: lang === 'en' ? `Consider strengthening mortgage affordability schemes through subsidized financing programs and interest-rate support mechanisms in ${lowAccessProv.Province}.` : `Pertimbangkan penguatan skema keterjangkauan KPR melalui program pembiayaan bersubsidi dan mekanisme dukungan suku bunga di ${lowAccessProv.Province}.`
+    });
   }
 
   if (highScoreProv && highScoreProv.HousingScore > 80) {
-    rules.push({ title: 'Priority: Low', icon: Info, desc: <>Maintain current policy trajectories in <DynamicData className="text-[#16A34A] border-[#16A34A]/50">{highScoreProv.Province}</DynamicData>. Focus on sustainable urban planning and green housing initiatives.</>, color: 'text-[#16A34A]' });
+    rules.push({ 
+      title: lang === 'en' ? 'Priority: Low (Maintenance)' : 'Prioritas: Rendah (Pemeliharaan)', 
+      desc: lang === 'en' ? `Maintain current policy trajectories in ${highScoreProv.Province}. Focus on sustainable urban planning and green housing initiatives.` : `Pertahankan lintasan kebijakan saat ini di ${highScoreProv.Province}. Fokus pada perencanaan tata ruang berkelanjutan dan inisiatif perumahan hijau.`
+    });
   }
 
   while (rules.length < 4) {
-    rules.push({ title: 'Monitoring Required', icon: Info, desc: <>Current metrics are stable. Continue monitoring key indicators.</>, color: 'text-gray-500' });
+    rules.push({ 
+      title: lang === 'en' ? 'Monitoring Required' : 'Pemantauan Diperlukan', 
+      desc: lang === 'en' ? `Current metrics are stable. Continue monitoring key indicators.` : `Metrik saat ini stabil. Lanjutkan pemantauan indikator utama.`
+    });
   }
 
   return (
-    <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
+    <div className="w-full bg-white text-black min-h-screen pb-24 font-serif leading-relaxed overflow-x-hidden">
       
-      {/* Title Header Section */}
-      <div className="w-full bg-[#0B1B36] text-white">
-        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white">Policy Insights</h1>
-          <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
-            Berdasarkan temuan intelijen pasar perumahan, apa tindakan strategis yang harus dilakukan pemerintah?
-            Halaman ini mentranslasikan analytics menjadi dukungan pengambilan keputusan kebijakan (Decision Support).
+      {/* PAPER CONTENT */}
+      <div className="w-full max-w-[850px] mx-auto px-6 sm:px-8 md:px-16 pt-12 md:pt-16 print:pt-0 print:px-0">
+        
+        {/* Title Header */}
+        <div className="border-b-4 border-black pb-8 md:pb-12 mb-8 md:mb-12">
+          <p className="text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
+            {lang === 'en' ? 'Policy Intelligence Chapter' : 'Bab Intelijen Kebijakan'}
           </p>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-6 leading-tight break-words">
+            {lang === 'en' ? 'Strategic Policy Scenarios and Interventions' : 'Skenario Kebijakan Strategis dan Intervensi'}
+          </h1>
         </div>
-      </div>
 
-      <div className="border-y border-gray-200 bg-[#F9F9F9]">
-        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
-
-          {/* Final Executive Recommendation (Large Highlight Card) */}
-          <div className="bg-[#005587] text-white p-10 md:p-16 mb-12 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 transform rotate-45 -mr-20 -mt-20"></div>
-            <h3 className="text-[12px] uppercase tracking-widest font-bold text-[#00B3DF] mb-4">Final Executive Recommendation</h3>
-            <p className="text-2xl md:text-3xl font-light leading-snug max-w-5xl">
-              &quot;Based on the national evaluation, the dual challenge of high backlog (<DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{avgBacklog?.toFixed(1) || 0}%</DynamicData>) and accessibility pressures requires targeted interventions. Policies must adapt dynamically: shift supply focus to <DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{highBacklogProv?.Province || 'critical zones'}</DynamicData>, while applying mortgage subsidies primarily in areas like <DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{lowAccessProv?.Province || 'low-access regions'}</DynamicData>.&quot;
+        {/* Executive Recommendation */}
+        <section className="mb-12 print-avoid-break">
+          <div className="p-6 md:p-8 border-2 border-black bg-white mb-8">
+            <h3 className="text-sm font-bold uppercase border-b border-black pb-2 mb-4">
+              {lang === 'en' ? 'Final Executive Recommendation' : 'Rekomendasi Eksekutif Akhir'}
+            </h3>
+            <p className="text-lg md:text-xl italic text-justify leading-relaxed">
+              &quot;{lang === 'en' 
+                ? `Based on the national evaluation, the dual challenge of high backlog (${avgBacklog?.toFixed(1) || 0}%) and accessibility pressures requires targeted interventions. Policies must adapt dynamically: shift supply focus to ${highBacklogProv?.Province || 'critical zones'}, while applying mortgage subsidies primarily in areas like ${lowAccessProv?.Province || 'low-access regions'}.`
+                : `Berdasarkan evaluasi nasional, tantangan ganda berupa backlog tinggi (${avgBacklog?.toFixed(1) || 0}%) dan tekanan aksesibilitas memerlukan intervensi yang ditargetkan. Kebijakan harus beradaptasi secara dinamis: alihkan fokus pasokan ke ${highBacklogProv?.Province || 'zona kritis'}, sementara menerapkan subsidi KPR terutama di wilayah seperti ${lowAccessProv?.Province || 'wilayah dengan akses rendah'}.`}&quot;
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16 mb-16">
-            
-            {/* National Risk Score (Gauge) */}
-            <div className="lg:col-span-4 bg-white p-8 border border-gray-200 flex flex-col items-center justify-center relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-[#D97706]"></div>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-2">National Risk Score</h3>
-              <p className="text-[12px] text-gray-500 uppercase tracking-widest mb-8">Overall Housing Stability</p>
-              
-              <div className="relative h-[200px] w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center mb-8">
+            <div className="col-span-1 border border-gray-300 p-4 text-center">
+              <h4 className="text-xs font-bold uppercase mb-4">{lang === 'en' ? 'National Risk Status' : 'Status Risiko Nasional'}</h4>
+              <div className="relative h-32 w-full mx-auto">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -154,110 +156,114 @@ export default function PolicyInsightsPage() {
                       stroke="none"
                     >
                       {gaugeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={GAUGE_COLORS[index % GAUGE_COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={index === 0 ? getTrafficLightColor(latestNational.HousingScore) : '#E5E7EB'} />
                       ))}
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="absolute bottom-0 left-0 w-full text-center pb-4">
-                  <div className="text-6xl font-black text-gray-900 tracking-tighter">{latestNational.HousingScore?.toFixed(0)}</div>
-                  <div className="text-[13px] font-bold text-[#D97706] uppercase tracking-widest mt-1">
-                    {latestNational.HousingScore >= 80 ? 'Low Risk' : latestNational.HousingScore >= 60 ? 'Moderate Risk' : 'High Risk'}
-                  </div>
+                <div className="absolute bottom-0 left-0 w-full text-center">
+                  <div className="text-3xl font-black">{latestNational.HousingScore?.toFixed(0)}</div>
                 </div>
+              </div>
+              <div className="text-xs font-bold uppercase mt-2">
+                {latestNational.HousingScore >= 80 ? (lang === 'en' ? 'Low Risk' : 'Risiko Rendah') : latestNational.HousingScore >= 60 ? (lang === 'en' ? 'Moderate Risk' : 'Risiko Moderat') : (lang === 'en' ? 'High Risk' : 'Risiko Tinggi')}
               </div>
             </div>
 
-            {/* Recommendation Cards */}
-            <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-              {rules.slice(0,4).map((rec, i) => (
-                <div key={i} className="bg-white p-8 border border-gray-200 hover:border-gray-300 transition-colors flex flex-col">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className={`p-2 bg-gray-50 rounded-full ${rec.color}`}><rec.icon size={20} /></div>
-                    <h3 className="text-[14px] font-bold text-gray-900 uppercase tracking-widest">{rec.title}</h3>
-                  </div>
-                  <p className="text-[14px] text-gray-600 font-medium leading-relaxed">{rec.desc}</p>
-                </div>
+            <div className="col-span-1 md:col-span-2">
+              <h4 className="text-sm font-bold uppercase border-b border-gray-300 pb-2 mb-4">{lang === 'en' ? 'Direct Policy Directives' : 'Arahan Kebijakan Langsung'}</h4>
+              <ul className="space-y-4">
+                {rules.slice(0, 3).map((rule, idx) => (
+                  <li key={idx} className="text-sm border-l-2 border-black pl-4">
+                    <strong className="block mb-1">{rule.title}</strong>
+                    <span className="text-gray-700 text-justify block">{rule.desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Priority Matrix */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '1. Policy Priority Quadrants' : '1. Kuadran Prioritas Kebijakan'}
+          </h2>
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en' ? 'By mapping Accessibility against the Housing Backlog, we identify regions requiring immediate, specialized interventions versus those suited for standard market mechanisms.' : 'Dengan memetakan Aksesibilitas terhadap Backlog Perumahan, kami mengidentifikasi wilayah yang memerlukan intervensi khusus dan segera dibandingkan dengan yang sesuai untuk mekanisme pasar standar.'}
+          </p>
+
+          <div className="my-8 border border-gray-300 p-2 sm:p-4 bg-gray-50 overflow-hidden">
+            <h4 className="text-center font-bold font-sans text-xs sm:text-sm mb-4 uppercase break-words">
+              {lang === 'en' ? 'Figure 1: Accessibility vs Backlog Matrix' : 'Gambar 1: Matriks Aksesibilitas vs Backlog'}
+            </h4>
+            <div className="relative h-80 w-full border border-gray-300 bg-white">
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis type="number" dataKey="accessibility" name="Accessibility Index" domain={[0, 100]} axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} />
+                  <YAxis type="number" dataKey="backlog" name="Backlog (%)" domain={[0, 50]} axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} />
+                  <ZAxis type="category" dataKey="province" name="Province" />
+                  <ReferenceLine x={50} stroke="#000" strokeDasharray="5 5" />
+                  <ReferenceLine y={25} stroke="#9CA3AF" strokeDasharray="5 5" />
+                  <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderColor: '#111827', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#00B3DF' }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
+                  <Scatter name="Provinces" data={priorityMatrixData} fill="#005587" shape="circle">
+                    {priorityMatrixData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.status === 'High Priority' ? '#DC2626' : entry.status === 'Medium Priority' ? '#D97706' : '#16A34A'} />
+                    ))}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+              <div className="absolute top-2 left-2 text-[8px] sm:text-[10px] font-bold uppercase bg-white/80 p-1 z-10 max-w-[45%] text-left leading-tight">High Backlog<br/>Low Access (Crisis)</div>
+              <div className="absolute top-2 right-2 text-[8px] sm:text-[10px] font-bold uppercase bg-white/80 p-1 z-10 max-w-[45%] text-right leading-tight">High Backlog<br/>High Access</div>
+              <div className="absolute bottom-8 left-2 text-[8px] sm:text-[10px] font-bold uppercase bg-white/80 p-1 z-10 max-w-[45%] text-left leading-tight">Low Backlog<br/>Low Access</div>
+              <div className="absolute bottom-8 right-2 text-[8px] sm:text-[10px] font-bold uppercase bg-white/80 p-1 z-10 max-w-[45%] text-right leading-tight">Low Backlog<br/>High Access (Stable)</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Simulation Scenario Table */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '2. Impact Simulation Outcomes' : '2. Hasil Simulasi Dampak'}
+          </h2>
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en' ? 'Projections of potential fiscal interventions and their estimated impacts on ownership and accessibility scores.' : 'Proyeksi intervensi fiskal potensial dan perkiraan dampaknya terhadap skor kepemilikan dan aksesibilitas.'}
+          </p>
+          
+          <div className="overflow-x-auto border border-gray-300">
+            <table className="w-full text-xs md:text-sm text-left border-collapse">
+              <thead className="bg-black text-white uppercase text-[10px] md:text-xs">
+                <tr>
+                  <th className="py-3 px-4 border border-gray-300">{lang === 'en' ? 'Policy Intervention' : 'Intervensi Kebijakan'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center">{lang === 'en' ? 'Est. Fiscal Cost' : 'Est. Biaya Fiskal'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center">{lang === 'en' ? 'Impact (Access)' : 'Dampak (Akses)'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center">{lang === 'en' ? 'Impact (Ownership)' : 'Dampak (Kepemilikan)'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {simulationData.map((row, idx) => (
+                  <tr key={idx} className="border-b border-gray-300 hover:bg-gray-50">
+                    <td className="py-2 px-4 border border-gray-300 font-bold">{lang === 'en' ? row.policy : row.policyId}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center"><span className={`text-[10px] font-bold uppercase px-2 py-1 ${row.cost === 'High' || row.cost === 'Very High' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{lang === 'en' ? row.cost : row.costId}</span></td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono font-bold text-[#16A34A]">{row.impactAccessibility}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono font-bold text-[#005587]">{row.impactOwnership}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-8 border border-gray-300 p-4 bg-gray-50">
+            <h4 className="text-sm font-bold uppercase mb-2">{lang === 'en' ? 'Targeted High-Priority Provinces' : 'Provinsi Sasaran Prioritas Tinggi'}</h4>
+            <div className="flex flex-wrap gap-2">
+              {priorityTableData.slice(0, 5).map((p, i) => (
+                <span key={i} className="px-3 py-1 border border-black bg-[#DC2626] text-white text-xs font-bold uppercase">{p.province}</span>
               ))}
             </div>
-
-            {/* Policy Priority Matrix (2x2) */}
-            <div className="lg:col-span-6 bg-white p-8 border border-gray-200">
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Policy Priority Matrix</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Accessibility vs Backlog Quadrant</p>
-              </div>
-              <div className="relative h-[400px] w-full">
-                <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-10 pointer-events-none z-0">
-                  <div className="bg-[#16A34A] border-r border-b border-gray-400"></div>
-                  <div className="bg-[#D97706] border-b border-gray-400"></div>
-                  <div className="bg-gray-200 border-r border-gray-400"></div>
-                  <div className="bg-[#DC2626]"></div>
-                </div>
-                <ResponsiveContainer width="100%" height="100%" className="relative z-10">
-                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                    <XAxis type="number" dataKey="accessibility" name="Accessibility Index" domain={[0, 100]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }}>
-                    </XAxis>
-                    <YAxis type="number" dataKey="backlog" name="Backlog (%)" domain={[0, 50]} axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
-                    <ZAxis type="category" dataKey="province" name="Province" />
-                    <ReferenceLine x={50} stroke="#9CA3AF" strokeDasharray="5 5" />
-                    <ReferenceLine y={25} stroke="#9CA3AF" strokeDasharray="5 5" />
-                    <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#00B3DF' }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
-                    <Scatter name="Provinces" data={priorityMatrixData} fill="#005587" shape="circle">
-                      {priorityMatrixData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.status === 'High Priority' ? '#DC2626' : entry.status === 'Medium Priority' ? '#D97706' : '#16A34A'} />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Impact Simulation Scenario Table */}
-            <div className="lg:col-span-6 bg-white border border-gray-200 overflow-hidden flex flex-col">
-              <div className="p-8 border-b-2 border-gray-100 flex justify-between items-end">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">Impact Simulation</h3>
-                  <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Policy Scenario Outcomes</p>
-                </div>
-              </div>
-              <div className="flex-1 overflow-x-auto p-4">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Policy Intervention</th>
-                      <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Est. Cost</th>
-                      <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Impact (Access)</th>
-                      <th className="py-4 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Impact (Ownership)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {simulationData.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-4 px-6 font-bold text-gray-900">{row.policy}</td>
-                        <td className="py-4 px-6"><span className={`text-[11px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm ${row.cost === 'High' || row.cost === 'Very High' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{row.cost}</span></td>
-                        <td className="py-4 px-6 font-bold text-[#16A34A]">{row.impactAccessibility}</td>
-                        <td className="py-4 px-6 font-bold text-[#005587]">{row.impactOwnership}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div className="p-8 border-t border-gray-100 mt-auto">
-                <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-widest">Top Target Provinces</h3>
-                <div className="flex flex-wrap gap-2">
-                  {priorityTableData.slice(0, 4).map((p, i) => (
-                    <span key={i} className="px-3 py-1.5 bg-[#DC2626] text-white text-xs font-bold uppercase tracking-widest rounded-sm">{p.province}</span>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
           </div>
-        </div>
+        </section>
+
       </div>
     </div>
   );

@@ -142,4 +142,9 @@
   .page-break-after {
     page-break-after: always;
   }
+
+  .print-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }

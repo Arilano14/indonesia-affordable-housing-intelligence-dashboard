@@ -5,26 +5,17 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ZAxis,
   LineChart, Line, BarChart, Bar, ComposedChart, Legend, Cell
 } from 'recharts';
-import { ArrowRight, Info } from 'lucide-react';
 import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
-import { CalculatedKPIs } from '@/lib/kpiEngine';
-
-const DynamicData = ({ children, className = "text-accent border-accent/50" }: { children: React.ReactNode, className?: string }) => (
-  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
-    {children}
-    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
-      Update Terakhir: Q3 2024
-    </span>
-  </span>
-);
+import { CalculatedKPIs, getTrafficLightColor } from '@/lib/kpiEngine';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export default function HousingMarketPage() {
   const [sortField, setSortField] = useState('AccessibilityIndex');
   const [trendData, setTrendData] = useState<NationalTrendData[]>([]);
   const [provinces, setProvinces] = useState<CalculatedKPIs[]>([]);
   const [loading, setLoading] = useState(true);
+  const { lang } = useLanguage();
   
-  // Chart Toggle States
   const [showBacklog, setShowBacklog] = useState(true);
   const [showInterestRate, setShowInterestRate] = useState(false);
 
@@ -64,10 +55,9 @@ export default function HousingMarketPage() {
   }, []);
 
   if (loading) {
-    return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
+    return <div className="w-full h-screen flex items-center justify-center font-serif text-lg">Generating Market Analysis...</div>;
   }
 
-  // Scatter Data (GDP vs Poverty)
   const scatterData = provinces.map(p => ({
     province: p.Province,
     gdp: p.GDPPerCapita / 1000000,
@@ -76,260 +66,199 @@ export default function HousingMarketPage() {
     population: p.Population
   }));
 
-  // Demand vs Supply Data for ALL Provinces, sorted by Population
   const allProvincesSortedByPop = [...provinces].sort((a, b) => b.Population - a.Population);
 
   const sortedTableData = [...provinces].sort((a, b) => {
     return (b[sortField as keyof typeof b] as number) > (a[sortField as keyof typeof a] as number) ? 1 : -1;
   });
 
-  const topAccessibility = [...provinces].sort((a, b) => b.AccessibilityIndex - a.AccessibilityIndex)[0];
   const highestBacklog = [...provinces].sort((a, b) => b.TotalBacklogPercent - a.TotalBacklogPercent)[0];
 
   const generateBacklogInsight = () => {
     if (!highestBacklog) return <></>;
-    const prov = <DynamicData>{highestBacklog.Province}</DynamicData>;
-    const backlog = <DynamicData>{highestBacklog.TotalBacklogPercent.toFixed(1)}%</DynamicData>;
+    const prov = highestBacklog.Province;
+    const backlog = highestBacklog.TotalBacklogPercent.toFixed(1) + '%';
     if (highestBacklog.TotalBacklogPercent > 30) {
-      return <>Province {prov} faces a critical housing deficit. With {backlog} backlog, urgent supply-side interventions are mandated to address the severe shortage.</>;
+      return lang === 'en' ? `Province ${prov} faces a critical housing deficit. With ${backlog} backlog, urgent supply-side interventions are mandated to address the severe shortage.` : `Provinsi ${prov} menghadapi defisit perumahan yang kritis. Dengan backlog sebesar ${backlog}, intervensi sisi pasokan yang mendesak diamanatkan untuk mengatasi kekurangan yang parah.`;
     } else if (highestBacklog.TotalBacklogPercent <= 10) {
-      return <>Province {prov} demonstrates high housing resilience with a minimal backlog of {backlog}, outperforming the national benchmark significantly.</>;
+      return lang === 'en' ? `Province ${prov} demonstrates high housing resilience with a minimal backlog of ${backlog}, outperforming the national benchmark significantly.` : `Provinsi ${prov} menunjukkan ketahanan perumahan yang tinggi dengan backlog minimal sebesar ${backlog}, mengungguli tolok ukur nasional secara signifikan.`;
     } else {
-      return <>Province {prov} reports the highest national backlog at {backlog}. While not at critical crisis levels (&gt;30%), sustained supply-demand imbalances require continued policy focus.</>;
+      return lang === 'en' ? `Province ${prov} reports the highest national backlog at ${backlog}. While not at critical crisis levels (>30%), sustained supply-demand imbalances require continued policy focus.` : `Provinsi ${prov} melaporkan backlog nasional tertinggi pada ${backlog}. Meskipun belum pada tingkat krisis (>30%), ketidakseimbangan pasokan dan permintaan yang berkelanjutan memerlukan fokus kebijakan yang terus-menerus.`;
     }
   };
 
-  const getPositiveColor = (val: number) => {
-    if (val >= 75) return 'bg-[#16A34A] text-white'; // Green
-    if (val >= 50) return 'bg-[#FBBF24] text-gray-900'; // Yellow
-    return 'bg-[#DC2626] text-white'; // Red
-  };
-
-  const getNegativeColor = (val: number) => {
-    if (val >= 20) return 'bg-[#DC2626] text-white'; // Red
-    if (val >= 10) return 'bg-[#FBBF24] text-gray-900'; // Yellow
-    return 'bg-[#16A34A] text-white'; // Green
-  };
-
   return (
-    <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
+    <div className="w-full bg-white text-black min-h-screen pb-24 font-serif leading-relaxed overflow-x-hidden">
       
-      {/* Title Header Section */}
-      <div className="w-full bg-[#0B1B36] text-white">
-        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white">Housing Market</h1>
-          <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
-            Bagaimana kapasitas makroekonomi mempengaruhi keterjangkauan rumah? Analisis PDRB per Kapita, 
-            tingkat kemiskinan, serta keseimbangan suplai dan permintaan di tingkat provinsi.
+      {/* PAPER CONTENT */}
+      <div className="w-full max-w-[850px] mx-auto px-6 sm:px-8 md:px-16 pt-12 md:pt-16 print:pt-0 print:px-0">
+        
+        {/* Title Header */}
+        <div className="border-b-4 border-black pb-8 md:pb-12 mb-8 md:mb-12">
+          <p className="text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
+            {lang === 'en' ? 'Housing Market Dynamics Chapter' : 'Bab Dinamika Pasar Perumahan'}
           </p>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-6 leading-tight break-words">
+            {lang === 'en' ? 'Market Capacity, Demand, and Supply Disparities' : 'Kapasitas Pasar, Ketimpangan Permintaan, dan Pasokan'}
+          </h1>
         </div>
-      </div>
 
-      <div className="border-y border-gray-200 bg-[#F9F9F9]">
-        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
+        {/* Section 1: Macro Insight */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '1. Market Overview' : '1. Tinjauan Pasar'}
+          </h2>
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en' 
+              ? 'Analyzing macroeconomic capacity reveals fundamental relationships between wealth, poverty, and housing accessibility at the provincial level.' 
+              : 'Menganalisis kapasitas makroekonomi mengungkap hubungan mendasar antara kekayaan, kemiskinan, dan aksesibilitas perumahan di tingkat provinsi.'}
+          </p>
+          <div className="mb-6 p-4 border-l-4 border-black bg-gray-50 text-base md:text-lg italic">
+            &quot;{generateBacklogInsight()}&quot;
+          </div>
           
-          {/* Key Insight Panel */}
-          <div className="bg-primary text-white p-8 mb-12 relative overflow-hidden border-l-8 border-accent">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-              <Info size={120} />
+          <div className="my-8 border border-gray-300 p-2 sm:p-4 bg-gray-50 overflow-hidden">
+            <h4 className="text-center font-bold font-sans text-xs sm:text-sm mb-4 uppercase break-words">
+              {lang === 'en' ? 'Figure 1: GDP per Capita vs Poverty Rate (Accessibility Proxy)' : 'Gambar 1: PDRB per Kapita vs Tingkat Kemiskinan (Proksi Aksesibilitas)'}
+            </h4>
+            <div className="h-64 sm:h-80 w-full border border-gray-300 bg-white">
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D1D5DB" />
+                  <XAxis type="number" dataKey="gdp" name="GDP/Capita" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} tickFormatter={(val) => `Rp${val} Jt`} />
+                  <YAxis type="number" dataKey="poverty" name="Poverty Rate" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} tickFormatter={(val) => `${val}%`} />
+                  <ZAxis type="category" dataKey="province" name="Province" />
+                  <RechartsTooltip 
+                    cursor={{ strokeDasharray: '3 3' }} 
+                    contentStyle={{ backgroundColor: '#111827', color: '#fff', borderColor: '#111827', borderRadius: 0, fontWeight: 600 }} 
+                    itemStyle={{ color: '#00B3DF' }} 
+                    formatter={(value: any, name: string) => {
+                      if (name === 'GDP/Capita') return [`Rp ${Number(value).toLocaleString('id-ID')} Juta`, name];
+                      if (name === 'Poverty Rate') return [`${Number(value).toLocaleString('id-ID')}%`, name];
+                      return [value, name];
+                    }}
+                  />
+                  <Scatter name="Provinces" data={scatterData} shape="circle" line={false}>
+                    {scatterData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={getTrafficLightColor(entry.accessibility)} />
+                    ))}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
             </div>
-            <h3 className="text-[12px] uppercase tracking-widest font-bold text-accent mb-3">Key Insight</h3>
-            <p className="text-2xl font-light leading-snug max-w-4xl">
-              &quot;{generateBacklogInsight()}&quot;
+          </div>
+        </section>
+
+        {/* Section 2: Supply vs Demand */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '2. Structural Supply and Demand' : '2. Pasokan dan Permintaan Struktural'}
+          </h2>
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en' 
+              ? 'The chart below contrasts the Housing Supply Index against the Demand Index, sorted by population to highlight the zero-skewing effect of highly dense provinces.' 
+              : 'Grafik di bawah ini membandingkan Indeks Pasokan Perumahan dengan Indeks Permintaan, diurutkan berdasarkan populasi untuk menyoroti efek zero-skewing dari provinsi yang padat penduduk.'}
+          </p>
+          
+          <div className="my-8 border border-gray-300 p-2 sm:p-4 bg-gray-50 overflow-hidden">
+            <h4 className="text-center font-bold font-sans text-xs sm:text-sm mb-4 uppercase break-words">
+              {lang === 'en' ? 'Figure 2: Demand vs Supply Equilibrium Index' : 'Gambar 2: Indeks Ekuilibrium Permintaan vs Pasokan'}
+            </h4>
+            <div className="w-full h-80 overflow-x-auto border border-gray-300 bg-white">
+              <div style={{ minWidth: '1000px', height: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={allProvincesSortedByPop} margin={{ top: 20, right: 20, bottom: 20, left: -20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="Province" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 10, fontFamily: 'sans-serif' }} angle={-45} textAnchor="end" height={80}/>
+                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} />
+                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: '#111827', color: '#fff', borderColor: '#111827', borderRadius: 0, fontWeight: 600 }} 
+                      itemStyle={{ color: '#fff' }}
+                      formatter={(value: any, name: string) => [Number(value).toFixed(2), name]}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '12px', fontWeight: 600 }} />
+                    <Bar yAxisId="left" dataKey="SupplyIndex" name={lang === 'en' ? "Supply Index" : "Indeks Pasokan"} barSize={12}>
+                      {allProvincesSortedByPop.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getTrafficLightColor(entry.SupplyIndex)} />
+                      ))}
+                    </Bar>
+                    <Line yAxisId="right" type="step" dataKey="DemandIndex" name={lang === 'en' ? "Demand Index" : "Indeks Permintaan"} stroke="#DC2626" strokeWidth={2} dot={{ r: 2 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <p className="text-xs text-justify italic mt-4 text-gray-700">
+              {lang === 'en' ? 'Methodological Note: Weighted addition prevents population extremes (e.g. West Java) from compressing smaller regions to zero during normalization.' : 'Catatan Metodologi: Penjumlahan berbobot mencegah ekstrem populasi (misal Jawa Barat) menekan wilayah yang lebih kecil menjadi nol selama normalisasi.'}
             </p>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16 mb-16">
-            
-            {/* Scatter Plot */}
-            <div className="bg-white p-8 border border-gray-200 lg:col-span-12 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              <div className="mb-8 border-b-2 border-gray-100 pb-4">
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">GDP Per Capita vs Poverty Rate</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Macroeconomic Accessibility</p>
-              </div>
-              <div className="relative w-full h-[400px]">
+        {/* Section 3: Mortgage Accessibility */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '3. Mortgage Accessibility Constraints' : '3. Keterbatasan Aksesibilitas KPR'}
+          </h2>
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en' ? 'Mortgage scoring reveals banking penetration and financial eligibility.' : 'Penilaian KPR mengungkapkan penetrasi perbankan dan kelayakan finansial.'}
+          </p>
+
+          <div className="my-8 border border-gray-300 p-2 sm:p-4 bg-gray-50 overflow-hidden">
+            <h4 className="text-center font-bold font-sans text-xs sm:text-sm mb-4 uppercase break-words">
+              {lang === 'en' ? 'Figure 3: Provincial Mortgage Accessibility Index' : 'Gambar 3: Indeks Aksesibilitas KPR Provinsi'}
+            </h4>
+            <div className="w-full h-[500px] overflow-y-auto border border-gray-300 bg-white p-2">
+              <div style={{ height: '700px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                    <XAxis type="number" dataKey="gdp" name="GDP/Capita" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} tickFormatter={(val) => `Rp ${val.toLocaleString('id-ID')} Juta`} />
-                    <YAxis type="number" dataKey="poverty" name="Poverty Rate" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} tickFormatter={(val) => `${val.toLocaleString('id-ID')}%`} />
-                    <ZAxis type="category" dataKey="province" name="Province" />
-                    <RechartsTooltip 
-                      cursor={{ strokeDasharray: '3 3' }} 
-                      contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0, fontWeight: 600 }} 
-                      itemStyle={{ color: '#00B3DF' }} 
-                      formatter={(value: any, name: string) => {
-                        if (name === 'GDP/Capita') return [`Rp ${Number(value).toLocaleString('id-ID')} Juta`, name];
-                        if (name === 'Poverty Rate') return [`${Number(value).toLocaleString('id-ID')}%`, name];
-                        return [typeof value === 'number' ? value.toLocaleString('id-ID') : value, name];
-                      }}
-                    />
-                    <Scatter name="Provinces" data={scatterData} fill="#005587" shape="circle" line={false}>
-                    </Scatter>
-                  </ScatterChart>
+                  <BarChart data={[...provinces].sort((a,b)=>b.MortgageAccessibility-a.MortgageAccessibility)} margin={{ top: 10, right: 20, bottom: 5, left: 20 }} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                    <XAxis type="number" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} domain={[0, 100]} />
+                    <YAxis dataKey="Province" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontFamily: 'sans-serif' }} width={120}/>
+                    <RechartsTooltip cursor={{fill: '#F9FAFB'}} contentStyle={{ backgroundColor: '#111827', borderColor: '#111827', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#fff' }} formatter={(value: any) => [Number(value).toFixed(2)]} />
+                    <Bar dataKey="MortgageAccessibility" name="Mortgage Score" barSize={10}>
+                      {[...provinces].sort((a,b)=>b.MortgageAccessibility-a.MortgageAccessibility).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getTrafficLightColor(entry.MortgageAccessibility)} />
+                      ))}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
-
-            {/* Dual Axis Chart (Supply vs Demand) */}
-            <div className="bg-white p-8 border border-gray-200 lg:col-span-12 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              <div className="mb-6 border-b-2 border-gray-100 pb-4">
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Housing Demand vs Supply Index</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">All Provinces (Sorted by Population)</p>
-              </div>
-              <div className="mb-4 bg-[#0B1120] text-[#4ADE80] p-4 rounded-md text-[13px] font-mono overflow-x-auto border border-gray-800 shadow-inner leading-relaxed">
-                <span className="text-gray-500">/* Derived using weighted composite index */</span><br/>
-                DemandIndex = (0.40 * PopulationScore) + (0.40 * HouseholdScore) + (0.20 * DensityScore)<br/>
-                SupplyIndex = 100 - (0.60 * BacklogOwnership + 0.40 * BacklogRTLH)
-              </div>
-              <p className="text-[13px] text-gray-600 font-medium mb-6 leading-relaxed p-4 bg-blue-50 border-l-4 border-primary rounded-r">
-                <strong>Catatan Metodologi:</strong> Penggunaan <em>Weighted Addition</em> (Penjumlahan Berbobot) pada Demand Index dirancang untuk menanggulangi ketimpangan jumlah populasi ekstrim antara Pulau Jawa dan provinsi lain. Jika menggunakan perkalian murni, provinsi berpopulasi padat seperti Jawa Barat akan menarik batas atas normalisasi hingga menekan provinsi luar Jawa ke angka nol (<em>Zero-Skewing</em>).
-              </p>
-              <div className="relative w-full h-[450px] overflow-x-auto custom-scrollbar">
-                <div style={{ minWidth: '1500px', height: '100%' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={allProvincesSortedByPop} margin={{ top: 20, right: 20, bottom: 20, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                      <XAxis dataKey="Province" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 11, fill: '#4B5563' }} angle={-45} textAnchor="end" height={100}/>
-                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
-                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
-                      <RechartsTooltip 
-                        contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} 
-                        itemStyle={{ color: '#fff' }}
-                        formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]}
-                      />
-                      <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '13px', fontWeight: 600 }} />
-                      <Bar yAxisId="left" dataKey="SupplyIndex" name="Supply Index" fill="#00B3DF" barSize={16} />
-                      <Line yAxisId="right" type="monotone" dataKey="DemandIndex" name="Demand Index" stroke="#DC2626" strokeWidth={3} dot={{ r: 3 }} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-
-            {/* Trend Chart (National Backlog) */}
-            <div className="bg-white p-8 border border-gray-200 lg:col-span-6 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              <div className="mb-8 border-b-2 border-gray-100 pb-4 flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">National Macro Trend</h3>
-                  <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Historical Indicator Comparison</p>
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  <label className="flex items-center space-x-2 text-sm font-bold text-gray-700 cursor-pointer hover:text-primary">
-                    <input type="checkbox" className="rounded text-primary border-gray-300 focus:ring-primary w-4 h-4" 
-                           checked={showBacklog} onChange={(e) => setShowBacklog(e.target.checked)} />
-                    <span>Total Backlog (%)</span>
-                  </label>
-                  <label className="flex items-center space-x-2 text-sm font-bold text-gray-700 cursor-pointer hover:text-primary">
-                    <input type="checkbox" className="rounded text-primary border-gray-300 focus:ring-primary w-4 h-4" 
-                           checked={showInterestRate} onChange={(e) => setShowInterestRate(e.target.checked)} />
-                    <span>Interest Rate (%)</span>
-                  </label>
-                </div>
-              </div>
-              <div className="relative w-full h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                    <XAxis dataKey="Year" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} dy={10} />
-                    <YAxis domain={['dataMin - 2', 'dataMax + 2']} axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} />
-                    <RechartsTooltip 
-                      contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} 
-                      itemStyle={{ color: '#fff' }}
-                      formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]}
-                    />
-                    {showBacklog && <Line type="monotone" dataKey="TotalBacklogPercent" name="Backlog %" stroke="#DC2626" strokeWidth={4} dot={{ r: 4 }} activeDot={{ r: 8 }} />}
-                    {showInterestRate && <Line type="monotone" dataKey="InterestRate" name="Interest Rate %" stroke="#005587" strokeWidth={4} dot={{ r: 4 }} activeDot={{ r: 8 }} />}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Column Chart */}
-            <div className="bg-white p-8 border border-gray-200 lg:col-span-6 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-              <div className="mb-6 border-b-2 border-gray-100 pb-4">
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Mortgage Accessibility</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">All Provinces</p>
-              </div>
-              <div className="mb-6 bg-[#0B1120] text-[#4ADE80] p-4 rounded-md text-[13px] font-mono overflow-x-auto border border-gray-800 shadow-inner leading-relaxed">
-                <span className="text-gray-500">/* Incorporates benchmark interest rate (BI Rate) */</span><br/>
-                MortgageScore = (0.60 * AccessibilityIndex) + (0.40 * InterestRateInverse)
-              </div>
-              <div className="relative w-full h-[400px] overflow-y-auto custom-scrollbar border border-gray-100 pr-2">
-                <div style={{ height: '700px', width: '100%' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[...provinces].sort((a,b)=>b.MortgageAccessibility-a.MortgageAccessibility)} margin={{ top: 10, right: 20, bottom: 5, left: 10 }} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
-                      <XAxis type="number" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} domain={[0, 100]} />
-                      <YAxis dataKey="Province" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#4B5563', fontWeight: 600 }} width={120}/>
-                      <RechartsTooltip cursor={{fill: '#F9FAFB'}} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderRadius: 0 }} itemStyle={{ color: '#fff' }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
-                      <Bar dataKey="MortgageAccessibility" name="Mortgage Score" barSize={12}>
-                        {[...provinces].sort((a,b)=>b.MortgageAccessibility-a.MortgageAccessibility).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.MortgageAccessibility >= 75 ? '#16A34A' : entry.MortgageAccessibility >= 50 ? '#FBBF24' : '#DC2626'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-
           </div>
+        </section>
 
-          {/* Table */}
-          <div className="bg-white border border-gray-200 overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-            <div className="p-8 border-b-2 border-gray-100 flex flex-col gap-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Market Ranking</h3>
-                <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Benchmark per Province</p>
-              </div>
-              <div className="w-full bg-[#0B1120] text-[#4ADE80] p-4 rounded-md text-[13px] font-mono overflow-x-auto border border-gray-800 shadow-inner leading-relaxed">
-                <span className="text-gray-500">/* Access Index measures basic macro affordability */</span><br/>
-                AccessibilityIndex = (0.30 * GDPScore) + (0.30 * OwnershipScore) + (0.20 * PovertyInverse) + (0.20 * BacklogInverse)
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest">Rank</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('Province')}>Province</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('GDPPerCapita')}>PDRB/Kapita (Rp Juta)</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('PovertyRate')}>Poverty (%)</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('AccessibilityIndex')}>Access Index (0-100)</th>
-                    <th className="py-4 px-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-primary" onClick={() => setSortField('MortgageAccessibility')}>Mortgage Score</th>
+        {/* Section 4: Market Ranking Table */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '4. Consolidated Market Rankings' : '4. Peringkat Pasar Terkonsolidasi'}
+          </h2>
+          
+          <div className="overflow-x-auto border border-gray-300">
+            <table className="w-full text-xs md:text-sm text-left border-collapse">
+              <thead className="bg-black text-white uppercase text-[10px] md:text-xs">
+                <tr>
+                  <th className="py-3 px-4 border border-gray-300 cursor-pointer" onClick={() => setSortField('Province')}>{lang === 'en' ? 'Province' : 'Provinsi'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center cursor-pointer" onClick={() => setSortField('GDPPerCapita')}>{lang === 'en' ? 'GDP/Cap (Rp M)' : 'PDRB/Kap (Rp Jt)'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center cursor-pointer" onClick={() => setSortField('PovertyRate')}>{lang === 'en' ? 'Poverty (%)' : 'Miskin (%)'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center cursor-pointer" onClick={() => setSortField('AccessibilityIndex')}>{lang === 'en' ? 'Access Index' : 'Indeks Akses'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center cursor-pointer" onClick={() => setSortField('MortgageAccessibility')}>{lang === 'en' ? 'Mortgage Score' : 'Skor KPR'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedTableData.map((row, idx) => (
+                  <tr key={idx} className="border-b border-gray-300 hover:bg-gray-50">
+                    <td className="py-2 px-4 border border-gray-300 font-bold">{row.Province}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{(row.GDPPerCapita/1000000).toFixed(1)}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{row.PovertyRate.toFixed(1)}%</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{row.AccessibilityIndex.toFixed(1)}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{row.MortgageAccessibility.toFixed(1)}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {sortedTableData.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="py-4 px-8 font-bold text-gray-900">{idx + 1}</td>
-                      <td className="py-4 px-8 font-bold text-primary">{row.Province}</td>
-                      <td className="py-4 px-8 text-gray-600 font-medium">{(row.GDPPerCapita/1000000).toFixed(1)}</td>
-                      <td className="py-4 px-8 text-gray-600 font-medium">
-                        <span className={`inline-flex items-center justify-center px-3 py-1 font-bold text-xs rounded-sm ${getNegativeColor(row.PovertyRate)}`}>
-                          {row.PovertyRate.toFixed(1)}
-                        </span>
-                      </td>
-                      <td className="py-4 px-8">
-                        <span className={`inline-flex items-center justify-center px-3 py-1 font-bold text-xs rounded-sm ${getPositiveColor(row.AccessibilityIndex)}`}>
-                          {row.AccessibilityIndex.toFixed(1)}
-                        </span>
-                      </td>
-                      <td className="py-4 px-8 text-gray-600 font-medium">
-                        <span className={`inline-flex items-center justify-center px-3 py-1 font-bold text-xs rounded-sm ${getPositiveColor(row.MortgageAccessibility)}`}>
-                          {row.MortgageAccessibility.toFixed(1)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </section>
 
-        </div>
       </div>
     </div>
   );

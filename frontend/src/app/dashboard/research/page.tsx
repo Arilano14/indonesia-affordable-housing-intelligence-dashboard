@@ -416,7 +416,15 @@ export default function ResearchFindingsPage() {
           <h2 className="text-base md:text-lg font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-4 text-black break-words">
             {lang === 'en' ? 'Appendix: Methodology & Sources' : 'Lampiran: Metodologi & Sumber'}
           </h2>
-          <p className="mb-2"><strong>{lang === 'en' ? 'Data Sources:' : 'Sumber Data:'}</strong> World Bank Open Data (GDP, Inflation), Badan Pusat Statistik (Poverty, Population, Backlog), Bank Indonesia (Interest Rates), {lang === 'en' ? 'and' : 'dan'} Kementerian PKP.</p>
+          <div className="mb-4">
+            <p className="mb-2 font-bold text-black">{lang === 'en' ? 'Data Sources & Temporal Coverage:' : 'Sumber Data & Cakupan Temporal:'}</p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li><strong>World Bank Open Data (GDP, Inflation):</strong> {lang === 'en' ? 'Sourced from the World Bank Development Indicators. Data represents the Fiscal Year 2025, subject to annual retrospective updates to ensure macroeconomic accuracy.' : 'Bersumber dari Indikator Pembangunan Bank Dunia. Data mewakili Tahun Fiskal 2025, tunduk pada pembaruan retrospektif tahunan untuk memastikan akurasi makroekonomi.'}</li>
+              <li><strong>Badan Pusat Statistik (Poverty, Population, Backlog):</strong> {lang === 'en' ? 'Derived from the National Socioeconomic Survey (SUSENAS) 2025. This primary dataset is rigorously updated on a semi-annual basis to capture demographic shifts.' : 'Berasal dari Survei Sosial Ekonomi Nasional (SUSENAS) 2025. Kumpulan data utama ini diperbarui secara berkala setiap semester untuk menangkap pergeseran demografis.'}</li>
+              <li><strong>Bank Indonesia (Interest Rates):</strong> {lang === 'en' ? 'Reflects the BI-7Day Reverse Repo Rate benchmark as of Q4 2025. Monetary policy metrics are updated monthly aligned with the Board of Governors\' Meeting.' : 'Mencerminkan tolok ukur BI-7Day Reverse Repo Rate per Kuartal IV 2025. Metrik kebijakan moneter diperbarui setiap bulan selaras dengan Rapat Dewan Gubernur.'}</li>
+              <li><strong>Kementerian PUPR / PKP (Housing Supply):</strong> {lang === 'en' ? 'Extracted from the administrative realization data of subsidized public housing (2025). Supply-side metrics are compiled and updated annually.' : 'Diekstrak dari data administratif realisasi perumahan umum bersubsidi (2025). Metrik sisi pasokan dikompilasi dan diperbarui setiap tahun.'}</li>
+            </ul>
+          </div>
           <p className="mb-2"><strong>{lang === 'en' ? 'HOGI Formula:' : 'Rumus HOGI:'}</strong> {lang === 'en' ? 'Computed as a weighted composite:' : 'Dihitung sebagai gabungan berbobot:'} 0.35(Backlog) + 0.25(Poverty) + 0.20(Ownership Gap) + 0.20(Accessibility Gap).</p>
           <p className="mb-2"><strong>{lang === 'en' ? 'Correlation Engine:' : 'Mesin Korelasi:'}</strong> Pearson Product-Moment Correlation (r) {lang === 'en' ? 'utilizing linear covariance mathematics across' : 'menggunakan matematika kovarians linier di'} {provinces.length} {lang === 'en' ? 'spatial data points.' : 'titik data spasial.'}</p>
         </section>

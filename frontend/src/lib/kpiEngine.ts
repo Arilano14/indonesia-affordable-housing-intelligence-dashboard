@@ -28,6 +28,13 @@ export interface CalculatedKPIs extends MergedProvinceData {
   ArchetypeCluster: "A - Emerging Housing Markets" | "B - High Growth Housing Stress" | "C - Social Vulnerability Zone" | "D - Balanced Housing Region" | "E - Unclassified";
 }
 
+export const getTrafficLightColor = (value: number, inverse = false) => {
+  if (inverse) {
+    return value >= 30 ? '#DC2626' : value >= 15 ? '#D97706' : '#16A34A'; 
+  }
+  return value >= 75 ? '#16A34A' : value >= 50 ? '#D97706' : '#DC2626'; 
+};
+
 export function calculateKPIs(data: MergedProvinceData[]): CalculatedKPIs[] {
   if (!data || data.length === 0) return [];
 

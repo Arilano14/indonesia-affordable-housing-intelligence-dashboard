@@ -44,10 +44,10 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
   const maxScore = validScores.length > 0 ? Math.max(...validScores) : 100;
 
   // Create a color scale (Red to Green based on score)
-  // Low score = #DC2626 (Red), Mid = #FBBF24 (Yellow), High = #10B981 (Green)
+  // Low score = #DC2626 (Red), Mid = #D97706 (Yellow/Amber), High = #16A34A (Green)
   const colorScale = scaleLinear<string>()
     .domain([minScore, (minScore + maxScore) / 2, maxScore])
-    .range(["#ef4444", "#fcd34d", "#10b981"]);
+    .range(["#DC2626", "#D97706", "#16A34A"]);
 
   if (!mounted) return <div className="w-full h-[500px] bg-gray-50 animate-pulse rounded-lg border border-gray-200"></div>;
 
@@ -56,7 +56,7 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
-          scale: 1300,
+          scale: 1000,
           center: [118, -2.5]
         }}
         width={800}

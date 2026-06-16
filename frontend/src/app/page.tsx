@@ -1,34 +1,24 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ArrowRight, MapPin, AlertCircle, TrendingUp, Key } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { fetchNationalData, fetchProvinceData, NationalTrendData } from '@/lib/dataProvider';
-import { CalculatedKPIs } from '@/lib/kpiEngine';
+import { CalculatedKPIs, getTrafficLightColor } from '@/lib/kpiEngine';
 import ChoroplethMap from '@/components/charts/ChoroplethMap';
-
-const DynamicData = ({ children, className = "text-accent border-accent/50" }: { children: React.ReactNode, className?: string }) => (
-  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
-    {children}
-    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
-      Update Terakhir: Q3 2024
-    </span>
-  </span>
-);
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export default function OverviewPage() {
   const [trendData, setTrendData] = useState<NationalTrendData[]>([]);
   const [provinces, setProvinces] = useState<CalculatedKPIs[]>([]);
   const [loading, setLoading] = useState(true);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     async function loadData() {
       try {
         const [national, provs] = await Promise.all([fetchNationalData(), fetchProvinceData()]);
         
-        // Ensure there is some data for the chart to render properly
         if (national.length === 1) {
-          // Add a dummy previous year if we only have one year for the trend chart
           setTrendData([
             {
               ...national[0],
@@ -54,29 +44,13 @@ export default function OverviewPage() {
   }, []);
 
   if (loading) {
-    return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
+    return <div className="w-full h-screen flex items-center justify-center font-serif text-lg">Generating Executive Summary...</div>;
   }
 
   const latestNational = trendData[trendData.length - 1] || { HousingScore: 0, AccessibilityIndex: 0, OwnershipRate: 0, TotalBacklogPercent: 0, InterestRate: 0 };
-  
-  const generateNationalInsight = () => {
-    const score = latestNational.HousingScore || 0;
-    const backlog = latestNational.TotalBacklogPercent || 0;
-    
-    if (score < 50) {
-      return <>National housing conditions indicate systemic challenges. Policy focus should prioritize affordability enhancement, backlog reduction, and acceleration of housing delivery.</>;
-    } else if (backlog > 25) {
-      return <>Current backlog levels suggest a structural supply-demand imbalance. Additional public-private housing partnerships (KPBU) may be required.</>;
-    } else if (score >= 75) {
-      return <>National housing conditions demonstrate strong resilience with a Housing Intelligence Score of <DynamicData>{score.toFixed(1)}</DynamicData>, reflecting effective policy interventions in homeownership and accessibility.</>;
-    } else {
-      return <>The national housing market maintains a moderate stability with an average score of <DynamicData>{score.toFixed(1)}</DynamicData>. While ownership rates hover around <DynamicData>{latestNational.OwnershipRate?.toFixed(1)}%</DynamicData>, targeted supply strategies remain crucial to address the remaining <DynamicData>{backlog.toFixed(1)}%</DynamicData> backlog.</>;
-    }
-  };
   const prevNational = trendData[trendData.length - 2] || latestNational;
   const scoreYoY = prevNational.HousingScore > 0 ? (((latestNational.HousingScore - prevNational.HousingScore) / prevNational.HousingScore) * 100).toFixed(1) : "0.0";
 
-  // Find snapshots
   const mostAccessible = [...provinces].sort((a, b) => b.AccessibilityIndex - a.AccessibilityIndex)[0];
   const highestBacklog = [...provinces].sort((a, b) => b.TotalBacklogPercent - a.TotalBacklogPercent)[0];
   const highestDemand = [...provinces].sort((a, b) => b.DemandIndex - a.DemandIndex)[0];
@@ -92,182 +66,196 @@ export default function OverviewPage() {
   const top5Provinces = [...mapData].sort((a, b) => b.score - a.score).slice(0, 5);
   const bottom5Provinces = [...mapData].sort((a, b) => a.score - b.score).slice(0, 5);
 
+  const score = latestNational.HousingScore || 0;
+  const backlog = latestNational.TotalBacklogPercent || 0;
+
   return (
-    <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
+    <div className="w-full bg-white text-black min-h-screen pb-24 font-serif leading-relaxed overflow-x-hidden">
       
-      {/* Title Header Section */}
-      <div className="w-full bg-[#0B1B36] text-white">
-        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white">Overview: National Condition</h1>
-          <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
-            Bagaimana kondisi perumahan Indonesia secara keseluruhan saat ini? 
-            Monitoring indeks nasional dan tren dari tahun ke tahun berdasarkan metodologi BPS.
+      {/* PAPER CONTENT */}
+      <div className="w-full max-w-[850px] mx-auto px-6 sm:px-8 md:px-16 pt-12 md:pt-16 print:pt-0 print:px-0">
+        
+        {/* Title Header */}
+        <div className="border-b-4 border-black pb-8 md:pb-12 mb-8 md:mb-12">
+          <p className="text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
+            {lang === 'en' ? 'National Overview Chapter' : 'Bab Tinjauan Nasional'}
           </p>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-6 leading-tight break-words">
+            {lang === 'en' 
+              ? 'Executive Summary: National Housing Condition' 
+              : 'Ringkasan Eksekutif: Kondisi Perumahan Nasional'}
+          </h1>
         </div>
-      </div>
 
-      {/* Main KPI Grid - OECD Style (Seamless borders) */}
-      <div className="border-y border-gray-200 bg-[#F9F9F9]">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+        {/* Introduction */}
+        <section className="mb-12 print-avoid-break">
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en'
+              ? `The National Housing Intelligence Score stands at `
+              : `Skor Intelijen Perumahan Nasional berada pada angka `}
+            <strong>{score.toFixed(1)}</strong> 
+            {lang === 'en' 
+              ? ` out of 100, reflecting a year-over-year change of +${scoreYoY}%. ` 
+              : ` dari 100, mencerminkan perubahan tahun-ke-tahun sebesar +${scoreYoY}%. `}
             
-            {/* Hero Section: Housing Intelligence Score with Circle */}
-            <div className="p-8 xl:p-12 flex flex-col items-center justify-center bg-white lg:bg-transparent text-center">
-              <h2 className="text-[12px] uppercase tracking-widest font-bold text-primary mb-6">Housing Intelligence Score</h2>
-              <div className="w-48 h-48 rounded-full border-[10px] border-primary flex flex-col items-center justify-center bg-white shadow-sm mb-6 relative">
-                <div className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent border-l-transparent transform rotate-45 opacity-50"></div>
-                <div className="text-5xl font-black text-gray-900 tracking-tighter">{latestNational.HousingScore?.toFixed(1)}</div>
-                <div className="text-[13px] font-bold text-green-600 mt-1">+{scoreYoY}% YoY</div>
-              </div>
-              <span className="inline-block px-4 py-1.5 bg-yellow-100 text-yellow-800 text-xs font-bold tracking-widest uppercase">
-                Status: {latestNational.HousingScore >= 60 ? 'Moderate' : 'Warning'}
-              </span>
-            </div>
-
-            {/* Sub KPIs */}
-            {[
-              { title: 'National Interest Rate', value: `${latestNational.InterestRate?.toFixed(1)}`, unit: '%', trend: 'Bank Indonesia Proxy', desc: 'Current benchmark interest rate.' },
-              { title: 'Home Ownership Rate', value: `${latestNational.OwnershipRate?.toFixed(1)}`, unit: '%', trend: 'Percentage of households', desc: 'Households living in their own home.' },
-              { title: 'Total Housing Backlog', value: `${latestNational.TotalBacklogPercent?.toFixed(1)}`, unit: '%', trend: 'Of Total Households', desc: 'Combined ownership and RTLH backlog.' },
-            ].map((kpi, i) => (
-              <div key={i} className="p-8 xl:p-12 flex flex-col justify-between bg-white hover:bg-gray-50 transition-colors group">
-                <div>
-                  <h3 className="text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-4 group-hover:text-primary transition-colors">{kpi.title}</h3>
-                  <div className="flex items-baseline space-x-1">
-                    <span className="text-4xl font-black text-gray-900 tracking-tight">{kpi.value}</span>
-                    <span className="text-sm text-gray-500 font-semibold">{kpi.unit}</span>
-                  </div>
-                  <p className="text-[12px] font-bold text-gray-400 mt-2">{kpi.trend}</p>
-                </div>
-                <div className="mt-8 pt-4 border-t border-gray-200">
-                  <p className="text-[12px] text-gray-500 font-medium leading-relaxed">{kpi.desc}</p>
-                </div>
-              </div>
-            ))}
-
-          </div>
-        </div>
-      </div>
-
-      {/* Middle Section: Chart & Snapshots */}
-      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16">
+            {score < 50 
+              ? (lang === 'en' ? 'National housing conditions indicate systemic challenges. Policy focus should prioritize affordability enhancement, backlog reduction, and acceleration of housing delivery.' : 'Kondisi perumahan nasional menunjukkan tantangan sistemik. Fokus kebijakan harus memprioritaskan peningkatan keterjangkauan, pengurangan backlog, dan percepatan penyediaan perumahan.')
+              : backlog > 25 
+                ? (lang === 'en' ? 'Current backlog levels suggest a structural supply-demand imbalance. Additional public-private housing partnerships (KPBU) may be required.' : 'Tingkat backlog saat ini menunjukkan ketidakseimbangan pasokan dan permintaan struktural. Kemitraan perumahan publik-swasta (KPBU) tambahan mungkin diperlukan.')
+                : score >= 75 
+                  ? (lang === 'en' ? 'National housing conditions demonstrate strong resilience, reflecting effective policy interventions in homeownership and accessibility.' : 'Kondisi perumahan nasional menunjukkan ketahanan yang kuat, mencerminkan intervensi kebijakan yang efektif dalam kepemilikan rumah dan aksesibilitas.')
+                  : (lang === 'en' ? `The national housing market maintains moderate stability. While ownership rates hover around ${latestNational.OwnershipRate?.toFixed(1)}%, targeted supply strategies remain crucial to address the remaining ${backlog.toFixed(1)}% backlog.` : `Pasar perumahan nasional mempertahankan stabilitas yang moderat. Meskipun tingkat kepemilikan berada di sekitar ${latestNational.OwnershipRate?.toFixed(1)}%, strategi pasokan yang ditargetkan tetap krusial untuk mengatasi sisa backlog sebesar ${backlog.toFixed(1)}%.`)}
+          </p>
           
-          {/* National Trend Chart */}
-          <div className="lg:col-span-8">
-            <div className="flex justify-between items-end mb-8 border-b-2 border-gray-100 pb-4">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 tracking-tight">National Housing Trend</h3>
-                <p className="text-sm font-medium text-gray-500 mt-1">Perubahan kualitas pasar perumahan</p>
-              </div>
-            </div>
-            {/* Wrap in relative positioned div with fixed height to fix recharts errors */}
-            <div className="relative w-full h-[450px]">
+          <div className="overflow-x-auto mb-8">
+            <table className="w-full text-xs md:text-sm text-left border-collapse border border-gray-300">
+              <thead className="bg-black text-white uppercase text-[10px] md:text-xs">
+                <tr>
+                  <th className="px-4 py-3 border border-gray-300">{lang === 'en' ? 'Key Indicator' : 'Indikator Utama'}</th>
+                  <th className="px-4 py-3 border border-gray-300 text-center">{lang === 'en' ? 'Value' : 'Nilai'}</th>
+                  <th className="px-4 py-3 border border-gray-300 text-center">{lang === 'en' ? 'Note' : 'Catatan'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-300">
+                  <td className="px-4 py-2 border border-gray-300 font-bold">{lang === 'en' ? 'Housing Intelligence Score' : 'Skor Intelijen Perumahan'}</td>
+                  <td className="px-4 py-2 border border-gray-300 text-center font-mono">{score.toFixed(1)}/100</td>
+                  <td className="px-4 py-2 border border-gray-300 text-center italic">{lang === 'en' ? 'Composite Index' : 'Indeks Komposit'}</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="px-4 py-2 border border-gray-300 font-bold">{lang === 'en' ? 'Home Ownership Rate' : 'Tingkat Kepemilikan Rumah'}</td>
+                  <td className="px-4 py-2 border border-gray-300 text-center font-mono">{latestNational.OwnershipRate?.toFixed(1)}%</td>
+                  <td className="px-4 py-2 border border-gray-300 text-center italic">{lang === 'en' ? 'Households' : 'Rumah Tangga'}</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="px-4 py-2 border border-gray-300 font-bold">{lang === 'en' ? 'Total Housing Backlog' : 'Total Backlog Perumahan'}</td>
+                  <td className="px-4 py-2 border border-gray-300 text-center font-mono">{backlog.toFixed(1)}%</td>
+                  <td className="px-4 py-2 border border-gray-300 text-center italic">{lang === 'en' ? 'Of Total Households' : 'Dari Total Rumah Tangga'}</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="px-4 py-2 border border-gray-300 font-bold">{lang === 'en' ? 'Benchmark Interest Rate' : 'Suku Bunga Acuan'}</td>
+                  <td className="px-4 py-2 border border-gray-300 text-center font-mono">{latestNational.InterestRate?.toFixed(1)}%</td>
+                  <td className="px-4 py-2 border border-gray-300 text-center italic">{lang === 'en' ? 'BI Proxy' : 'Proksi BI'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* National Trend Chart */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '1. National Housing Trend' : '1. Tren Perumahan Nasional'}
+          </h2>
+          
+          <div className="my-8 border border-gray-300 p-2 sm:p-4 bg-gray-50 overflow-hidden">
+            <h4 className="text-center font-bold font-sans text-xs sm:text-sm mb-4 uppercase break-words">
+              {lang === 'en' ? 'Figure 1: Historic Trend of Housing Score vs Ownership Rate' : 'Gambar 1: Tren Historis Skor Perumahan vs Tingkat Kepemilikan'}
+            </h4>
+            <div className="h-64 sm:h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 5, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="Year" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} dy={10} />
-                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} domain={['dataMin - 5', 'dataMax + 5']} />
-                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563', fontWeight: 600 }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D1D5DB" />
+                  <XAxis dataKey="Year" axisLine={{stroke: '#9CA3AF'}} tickLine={false} tick={{ fontSize: 12, fill: '#000', fontFamily: 'serif' }} dy={10} />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#000', fontFamily: 'serif' }} domain={['dataMin - 5', 'dataMax + 5']} />
+                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#000', fontFamily: 'serif' }} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#111827', borderColor: '#111827', borderRadius: '0px', color: '#fff', fontSize: '13px', fontWeight: 600, padding: '12px' }}
                     itemStyle={{ color: '#fff' }}
                     cursor={{ stroke: '#E5E7EB', strokeWidth: 2 }}
                   />
-                  <Line yAxisId="left" type="monotone" dataKey="HousingScore" name="Housing Score" stroke="#005587" strokeWidth={4} dot={{ r: 5, fill: '#005587', strokeWidth: 0 }} activeDot={{ r: 8, stroke: '#fff', strokeWidth: 2 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="OwnershipRate" name="Ownership %" stroke="#00B3DF" strokeWidth={3} dot={{ r: 4 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="HousingScore" name={lang === 'en' ? "Housing Score" : "Skor Perumahan"} stroke="#005587" strokeWidth={4} dot={{ r: 5, fill: '#005587', strokeWidth: 0 }} activeDot={{ r: 8, stroke: '#fff', strokeWidth: 2 }} />
+                  <Line yAxisId="right" type="monotone" dataKey="OwnershipRate" name={lang === 'en' ? "Ownership %" : "Kepemilikan %"} stroke="#00B3DF" strokeWidth={3} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
+            <p className="text-xs text-center italic mt-2 text-gray-600">
+              {lang === 'en' ? 'Source: Computed from BPS Datasets.' : 'Sumber: Dihitung dari Dataset BPS.'}
+            </p>
           </div>
+        </section>
 
-          {/* Housing Snapshot (Insight Cards) */}
-          <div className="lg:col-span-4 flex flex-col space-y-6">
-            <h3 className="text-2xl font-bold text-gray-900 tracking-tight border-b-2 border-gray-100 pb-4 mb-2">Housing Snapshot</h3>
-            
-            {[
-              { label: 'Highest Accessibility', value: mostAccessible?.Province || 'N/A', icon: MapPin },
-              { label: 'Highest Backlog Province', value: highestBacklog?.Province || 'N/A', icon: AlertCircle },
-              { label: 'Highest Demand Index', value: highestDemand?.Province || 'N/A', icon: TrendingUp },
-              { label: 'Highest Ownership Province', value: highestOwnership?.Province || 'N/A', icon: Key },
-            ].map((snap, i) => (
-              <div key={i} className="bg-white border border-gray-200 p-6 flex items-center hover:border-primary transition-colors cursor-pointer group">
-                <div className="w-12 h-12 bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors mr-5">
-                  <snap.icon size={24} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">{snap.label}</p>
-                  <p className="text-xl font-bold text-gray-900">{snap.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-        </div>
-      </div>
-
-      {/* Geospatial Intelligence Section */}
-      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 pb-16">
-        <div className="flex justify-between items-end mb-8 border-b-2 border-gray-100 pb-4">
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">Geospatial Intelligence Dashboard</h3>
-            <p className="text-sm font-medium text-gray-500 mt-1">Distribusi Housing Intelligence Score di 38 Provinsi</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-3">
-            <ChoroplethMap data={mapData} />
-          </div>
-          
-          {/* Ranking Panel */}
-          <div className="lg:col-span-1 flex flex-col space-y-6">
-            <div className="bg-white border border-gray-200 p-6 shadow-sm">
-              <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Top 5 Provinces</h4>
-              <div className="flex flex-col space-y-3">
-                {top5Provinces.map((p, i) => (
-                  <div key={p.province} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">{i+1}</div>
-                      <span className="text-sm font-bold text-gray-900 truncate max-w-[120px]">{p.province}</span>
-                    </div>
-                    <span className="text-sm font-bold text-emerald-600">{p.score.toFixed(1)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 p-6 shadow-sm">
-              <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Bottom 5 Provinces</h4>
-              <div className="flex flex-col space-y-3">
-                {bottom5Provinces.map((p, i) => (
-                  <div key={p.province} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold">{38-i}</div>
-                      <span className="text-sm font-bold text-gray-900 truncate max-w-[120px]">{p.province}</span>
-                    </div>
-                    <span className="text-sm font-bold text-red-600">{p.score.toFixed(1)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Executive Summary */}
-      <div className="max-w-[1600px] mx-auto px-6 xl:px-12 pb-16">
-        <div className="bg-primary text-white p-10 md:p-16 relative overflow-hidden">
-          {/* Decorative Pattern */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 transform rotate-45 -mr-20 -mt-20"></div>
-          
-          <h3 className="text-[12px] uppercase tracking-widest font-bold text-accent mb-4">Executive Summary</h3>
-          <p className="text-2xl md:text-3xl font-light leading-snug max-w-4xl">
-            &quot;{generateNationalInsight()}&quot;
+        {/* Geospatial Intelligence */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '2. Geospatial Intelligence' : '2. Intelijen Geospasial'}
+          </h2>
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en' 
+              ? 'The spatial distribution of housing intelligence scores across 38 provinces reveals significant regional disparities. Below is the mapped representation of the national conditions.' 
+              : 'Distribusi spasial skor intelijen perumahan di 38 provinsi mengungkapkan ketimpangan regional yang signifikan. Berikut adalah representasi terpetakan dari kondisi nasional.'}
           </p>
-        </div>
-      </div>
+          
+          <div className="my-8 border border-gray-300 p-2 sm:p-4 bg-gray-50 overflow-hidden">
+            <h4 className="text-center font-bold font-sans text-xs sm:text-sm mb-4 uppercase break-words">
+              {lang === 'en' ? 'Figure 2: Distribution of Housing Intelligence Score' : 'Gambar 2: Distribusi Skor Intelijen Perumahan'}
+            </h4>
+            <div className="border border-gray-300 bg-white">
+              <ChoroplethMap data={mapData} />
+            </div>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+            <div className="border border-gray-300 p-4">
+              <h3 className="font-bold uppercase text-sm border-b border-gray-300 pb-2 mb-4">
+                {lang === 'en' ? 'Top 5 Performing Provinces' : '5 Provinsi Berkinerja Terbaik'}
+              </h3>
+              <ul className="list-decimal pl-5 text-sm md:text-base space-y-2">
+                {top5Provinces.map((p) => (
+                  <li key={p.province}>
+                    <div className="flex justify-between">
+                      <span>{p.province}</span>
+                      <strong className="font-mono">{p.score.toFixed(1)}</strong>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="border border-gray-300 p-4">
+              <h3 className="font-bold uppercase text-sm border-b border-gray-300 pb-2 mb-4">
+                {lang === 'en' ? 'Bottom 5 Critical Provinces' : '5 Provinsi Paling Kritis'}
+              </h3>
+              <ul className="list-decimal pl-5 text-sm md:text-base space-y-2">
+                {bottom5Provinces.map((p) => (
+                  <li key={p.province}>
+                    <div className="flex justify-between">
+                      <span>{p.province}</span>
+                      <strong className="font-mono">{p.score.toFixed(1)}</strong>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Snapshot Summary */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '3. Provincial Extremes' : '3. Kondisi Ekstrem Provinsi'}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="border border-gray-300 p-4">
+              <p className="text-xs font-bold uppercase text-gray-500 mb-1">{lang === 'en' ? 'Highest Accessibility' : 'Aksesibilitas Tertinggi'}</p>
+              <p className="text-lg font-bold">{mostAccessible?.Province || 'N/A'}</p>
+            </div>
+            <div className="border border-gray-300 p-4">
+              <p className="text-xs font-bold uppercase text-gray-500 mb-1">{lang === 'en' ? 'Highest Backlog' : 'Backlog Tertinggi'}</p>
+              <p className="text-lg font-bold">{highestBacklog?.Province || 'N/A'}</p>
+            </div>
+            <div className="border border-gray-300 p-4">
+              <p className="text-xs font-bold uppercase text-gray-500 mb-1">{lang === 'en' ? 'Highest Demand Index' : 'Indeks Permintaan Tertinggi'}</p>
+              <p className="text-lg font-bold">{highestDemand?.Province || 'N/A'}</p>
+            </div>
+            <div className="border border-gray-300 p-4">
+              <p className="text-xs font-bold uppercase text-gray-500 mb-1">{lang === 'en' ? 'Highest Ownership Rate' : 'Tingkat Kepemilikan Tertinggi'}</p>
+              <p className="text-lg font-bold">{highestOwnership?.Province || 'N/A'}</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
     </div>
   );
 }

@@ -3,36 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell
 } from 'recharts';
-import { ArrowRight, Info, Map, Calendar, ChevronDown } from 'lucide-react';
 import ChoroplethMap from '@/components/charts/ChoroplethMap';
 import { fetchProvinceData } from '@/lib/dataProvider';
-import { CalculatedKPIs } from '@/lib/kpiEngine';
-
-const DynamicData = ({ children, className = "text-[#00B3DF] border-[#00B3DF]/50" }: { children: React.ReactNode, className?: string }) => (
-  <span className={`font-bold relative group cursor-help border-b border-dashed pb-[1px] ${className}`}>
-    {children}
-    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
-      Update Terakhir: Q3 2024
-    </span>
-  </span>
-);
-
-// Helpers for Traffic Light Colors (Mean-based)
-const getPositiveColor = (value: number, mean: number) => {
-  if (value >= mean + 5) return 'bg-[#16A34A] text-white font-bold'; // Green (Lumayan jauh di atas rata-rata)
-  if (value >= mean - 5) return 'bg-[#FBBF24] text-gray-900 font-bold'; // Yellow (Dekat dengan rata-rata)
-  return 'bg-[#DC2626] text-white font-bold'; // Red (Di bawah rata-rata)
-};
-
-const getNegativeColor = (value: number, mean: number) => {
-  // For negative indicators (like Backlog), lower is better. 
-  // So if value is far below mean, it's green.
-  if (value <= mean - 5) return 'bg-[#16A34A] text-white font-bold'; // Green (Lumayan jauh di bawah rata-rata)
-  if (value <= mean + 5) return 'bg-[#FBBF24] text-gray-900 font-bold'; // Yellow (Dekat dengan rata-rata)
-  return 'bg-[#DC2626] text-white font-bold'; // Red (Di atas rata-rata)
-};
+import { CalculatedKPIs, getTrafficLightColor } from '@/lib/kpiEngine';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 const YEARS = ["2026", "2025", "2024"];
 
@@ -40,11 +16,9 @@ export default function RegionalAnalysisPage() {
   const [provinces, setProvinces] = useState<CalculatedKPIs[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState("2024");
-  const [yearOpen, setYearOpen] = useState(false);
   const [provA, setProvA] = useState("DKI Jakarta");
-  const [provAOpen, setProvAOpen] = useState(false);
   const [provB, setProvB] = useState("Jawa Barat");
-  const [provBOpen, setProvBOpen] = useState(false);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     async function loadData() {
@@ -58,12 +32,11 @@ export default function RegionalAnalysisPage() {
       }
     }
     loadData();
-  }, [selectedYear]); // Re-fetch if year changes (in real app)
+  }, [selectedYear]);
 
   const displayProvinces = React.useMemo(() => {
     if (selectedYear === "2024") return provinces;
     
-    // Simulate historical/future data changes based on year selection for interactive UI demonstration
     const m = selectedYear === "2025" ? 1.05 : selectedYear === "2026" ? 1.1 : 0.95;
     const invM = 1 / m;
     
@@ -91,7 +64,7 @@ export default function RegionalAnalysisPage() {
   }, [displayProvinces]);
 
   if (loading) {
-    return <div className="w-full h-screen flex items-center justify-center font-bold text-primary">Loading Data...</div>;
+    return <div className="w-full h-screen flex items-center justify-center font-serif text-lg">Generating Spatial Analysis...</div>;
   }
 
   const sortedByScore = [...displayProvinces].sort((a, b) => b.HousingScore - a.HousingScore);
@@ -109,260 +82,217 @@ export default function RegionalAnalysisPage() {
   const provBData = displayProvinces.find(p => p.Province === provB) || displayProvinces[1] || displayProvinces[0] || {} as CalculatedKPIs;
 
   const radarData = [
-    { subject: 'Accessibility', A: provAData.AccessibilityIndex, B: provBData.AccessibilityIndex, fullMark: 100 },
-    { subject: 'Ownership', A: provAData.OwnershipRate, B: provBData.OwnershipRate, fullMark: 100 },
-    { subject: 'Supply Index', A: provAData.SupplyIndex, B: provBData.SupplyIndex, fullMark: 100 },
-    { subject: 'Mortgage Access', A: provAData.MortgageAccessibility, B: provBData.MortgageAccessibility, fullMark: 100 },
-    { subject: 'Demand Index', A: provAData.DemandIndex, B: provBData.DemandIndex, fullMark: 100 },
+    { subject: lang === 'en' ? 'Accessibility' : 'Aksesibilitas', A: provAData.AccessibilityIndex, B: provBData.AccessibilityIndex, fullMark: 100 },
+    { subject: lang === 'en' ? 'Ownership' : 'Kepemilikan', A: provAData.OwnershipRate, B: provBData.OwnershipRate, fullMark: 100 },
+    { subject: lang === 'en' ? 'Supply Index' : 'Indeks Pasokan', A: provAData.SupplyIndex, B: provBData.SupplyIndex, fullMark: 100 },
+    { subject: lang === 'en' ? 'Mortgage Access' : 'Akses KPR', A: provAData.MortgageAccessibility, B: provBData.MortgageAccessibility, fullMark: 100 },
+    { subject: lang === 'en' ? 'Demand Index' : 'Indeks Permintaan', A: provAData.DemandIndex, B: provBData.DemandIndex, fullMark: 100 },
   ];
 
   const generateComparativeInsight = () => {
     if (!provAData.HousingScore || !provBData.HousingScore) return <></>;
     const delta = provAData.HousingScore - provBData.HousingScore;
-    const pA = <DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{provAData.Province}</DynamicData>;
-    const pB = <DynamicData className="text-[#00B3DF] border-[#00B3DF]/50">{provBData.Province}</DynamicData>;
-    const diff = <DynamicData className="text-[#DC2626] border-[#DC2626]/50">{Math.abs(delta).toFixed(1)}</DynamicData>;
+    const diff = Math.abs(delta).toFixed(1);
 
     if (delta > 5) {
-      return <>{pA} significantly outperforms {pB} in overall housing welfare by {diff} points.</>;
+      return lang === 'en' ? `${provAData.Province} significantly outperforms ${provBData.Province} in overall housing welfare by ${diff} points.` : `${provAData.Province} mengungguli ${provBData.Province} secara signifikan dalam kesejahteraan perumahan sebesar ${diff} poin.`;
     } else if (delta < -5) {
-      return <>{pB} significantly outperforms {pA} in overall housing welfare by {diff} points.</>;
+      return lang === 'en' ? `${provBData.Province} significantly outperforms ${provAData.Province} in overall housing welfare by ${diff} points.` : `${provBData.Province} mengungguli ${provAData.Province} secara signifikan dalam kesejahteraan perumahan sebesar ${diff} poin.`;
     } else {
-      return <>{pA} and {pB} exhibit near-identical housing market conditions, suggesting shared regional macroeconomic constraints with a marginal gap of {diff} points.</>;
+      return lang === 'en' ? `${provAData.Province} and ${provBData.Province} exhibit near-identical housing market conditions with a marginal gap of ${diff} points.` : `${provAData.Province} dan ${provBData.Province} menunjukkan kondisi pasar perumahan yang hampir identik dengan selisih marjinal ${diff} poin.`;
     }
   };
 
   return (
-    <div className="w-full bg-white font-sans text-gray-900 pb-24 min-h-screen">
+    <div className="w-full bg-white text-black min-h-screen pb-24 font-serif leading-relaxed overflow-x-hidden">
       
-      {/* Title Header Section */}
-      <div className="w-full bg-[#0B1B36] text-white">
-        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-16">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4 text-white">Regional Analysis</h1>
-          <p className="text-xl md:text-3xl text-[#00B3DF] max-w-4xl font-light leading-snug">
-            Provinsi mana yang memiliki kondisi perumahan terbaik dan terburuk? Analisis spasial 
-            dan perbandingan metrik kunci antar wilayah di Indonesia.
-          </p>
+      {/* PAPER CONTENT */}
+      <div className="w-full max-w-[850px] mx-auto px-6 sm:px-8 md:px-16 pt-12 md:pt-16 print:pt-0 print:px-0">
+        
+        {/* Title Header */}
+        <div className="border-b-4 border-black pb-8 md:pb-12 mb-8 md:mb-12 flex justify-between items-end">
+          <div>
+            <p className="text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
+              {lang === 'en' ? 'Spatial & Regional Chapter' : 'Bab Spasial & Regional'}
+            </p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight break-words">
+              {lang === 'en' ? 'Spatial Disparities and Regional Analysis' : 'Ketimpangan Spasial dan Analisis Regional'}
+            </h1>
+          </div>
+          <div className="hidden sm:block">
+            <select 
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="bg-white border-2 border-black font-bold px-3 py-1 text-sm cursor-pointer outline-none font-sans"
+            >
+              {YEARS.map(y => <option key={y} value={y}>Data {y}</option>)}
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div className="border-y border-gray-200 bg-[#F9F9F9]">
-        <div className="max-w-[1600px] mx-auto px-6 xl:px-12 py-12">
+        {/* Section 1: Map */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '1. Indonesia Housing Landscape' : '1. Lanskap Perumahan Indonesia'}
+          </h2>
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en' 
+              ? 'A spatial analysis of the Housing Intelligence Score reveals how affordability, supply, and demand constraints vary geographically.' 
+              : 'Analisis spasial dari Skor Intelijen Perumahan mengungkapkan bagaimana keterbatasan keterjangkauan, pasokan, dan permintaan bervariasi secara geografis.'}
+          </p>
           
-          {/* Key Insight Panel */}
-          <div className="bg-white border border-gray-200 p-8 mb-12 flex items-start space-x-6 relative overflow-hidden">
-            <div className="w-2 bg-[#00B3DF] absolute left-0 top-0 bottom-0"></div>
-            <div className="text-[#00B3DF] mt-1"><Info size={32} /></div>
-            <div>
-              <h3 className="text-[12px] uppercase tracking-widest font-bold text-gray-500 mb-2">Comparative Insight</h3>
-              <p className="text-2xl font-bold text-gray-900 leading-snug">
-                &quot;{generateComparativeInsight()}&quot;
-              </p>
+          <div className="my-8 border border-gray-300 p-2 sm:p-4 bg-gray-50 overflow-hidden">
+            <h4 className="text-center font-bold font-sans text-xs sm:text-sm mb-4 uppercase break-words">
+              {lang === 'en' ? 'Figure 1: Choropleth Map of Housing Intelligence Score' : 'Gambar 1: Peta Koroplet Skor Intelijen Perumahan'}
+            </h4>
+            <div className="border border-gray-300 bg-white min-h-[400px]">
+              <ChoroplethMap data={mapData} meanScore={means.HousingScore} />
             </div>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-16 mb-16">
-            
-            {/* Choropleth Map */}
-            <div className="lg:col-span-12 bg-white p-8 border border-gray-200 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              <div className="flex justify-between items-end mb-6 border-b-2 border-gray-100 pb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                    <Map size={24} className="text-primary"/> Indonesia Housing Landscape
-                  </h3>
-                  <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Housing Intelligence Score (Choropleth Map)</p>
-                </div>
+        {/* Section 2: Regional Benchmark */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '2. Regional Comparative Benchmark' : '2. Perbandingan Tolok Ukur Regional'}
+          </h2>
+          <p className="text-justify text-base md:text-lg mb-6">
+            {lang === 'en' 
+              ? 'By conducting direct comparisons between specific regions, we can isolate macro-level vulnerabilities across multiple housing axes.' 
+              : 'Dengan melakukan perbandingan langsung antar wilayah spesifik, kami dapat mengisolasi kerentanan tingkat makro di berbagai sumbu perumahan.'}
+          </p>
+
+          <div className="mb-6 p-4 border-l-4 border-black bg-gray-50 text-base md:text-lg italic">
+            &quot;{generateComparativeInsight()}&quot;
+          </div>
+          
+          <div className="my-8 border border-gray-300 p-4 bg-gray-50 flex flex-col md:flex-row gap-8 items-center">
+            <div className="w-full md:w-1/3 flex flex-col gap-6">
+              <div>
+                <label className="text-xs font-bold uppercase mb-2 block">{lang === 'en' ? 'Province A' : 'Provinsi A'}</label>
+                <select 
+                  value={provA}
+                  onChange={(e) => setProvA(e.target.value)}
+                  className="w-full p-2 border border-gray-300 font-sans text-sm outline-none"
+                >
+                  {displayProvinces.map(p => <option key={`A-${p.Province}`} value={p.Province}>{p.Province}</option>)}
+                </select>
               </div>
-              <div className="mb-6 bg-[#0B1120] text-[#4ADE80] p-4 rounded-md text-[13px] font-mono overflow-x-auto border border-gray-800 shadow-inner leading-relaxed">
-                <span className="text-gray-500">/* Final aggregated score for overall housing performance */</span><br/>
-                HousingScore = (0.35 * AccessibilityIndex) + (0.35 * MortgageScore) + (0.15 * SupplyIndex) + (0.15 * DemandInverse)
-              </div>
-              <div className="w-full relative min-h-[400px]">
-                <ChoroplethMap data={mapData} meanScore={means.HousingScore} />
+              <div>
+                <label className="text-xs font-bold uppercase mb-2 block">{lang === 'en' ? 'Province B' : 'Provinsi B'}</label>
+                <select 
+                  value={provB}
+                  onChange={(e) => setProvB(e.target.value)}
+                  className="w-full p-2 border border-gray-300 font-sans text-sm outline-none"
+                >
+                  {displayProvinces.map(p => <option key={`B-${p.Province}`} value={p.Province}>{p.Province}</option>)}
+                </select>
               </div>
             </div>
 
-            {/* Radar Chart Comparison */}
-            <div className="lg:col-span-4 bg-white p-6 xl:p-8 border border-gray-200 flex flex-col animate-fade-in-up h-full" style={{ animationDelay: '0.4s' }}>
-              <div className="mb-4 border-b-2 border-gray-100 pb-4 shrink-0">
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Regional Benchmark</h3>
-                <p className="text-[12px] text-gray-500 mt-1 uppercase tracking-widest line-clamp-2">Province vs Province</p>
-              </div>
-              <div className="flex flex-col gap-2 mb-4 shrink-0">
-                <div className="relative z-[60]">
-                  <button 
-                    onClick={() => { setProvAOpen(!provAOpen); setProvBOpen(false); }}
-                    className={`w-full flex items-center justify-between p-2 border border-gray-200 rounded text-sm font-bold bg-gray-50 text-gray-800 focus:outline-none transition-colors ${provAOpen ? 'ring-2 ring-primary/20 border-primary' : 'hover:border-primary'}`}
-                  >
-                    <span className="truncate">{provA}</span>
-                    <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${provAOpen ? 'rotate-180 text-primary' : ''}`} />
-                  </button>
-                  {provAOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-xl overflow-y-auto max-h-60 custom-scrollbar z-[60]">
-                      {displayProvinces.map(p => (
-                        <button 
-                          key={`A-${p.Province}`} 
-                          onClick={() => { setProvA(p.Province); setProvAOpen(false); }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${provA === p.Province ? 'bg-primary/10 text-primary font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'}`}
-                        >
-                          {p.Province}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="relative z-50">
-                  <button 
-                    onClick={() => { setProvBOpen(!provBOpen); setProvAOpen(false); }}
-                    className={`w-full flex items-center justify-between p-2 border border-gray-200 rounded text-sm font-bold bg-gray-50 text-gray-800 focus:outline-none transition-colors ${provBOpen ? 'ring-2 ring-[#16A34A]/20 border-[#16A34A]' : 'hover:border-[#16A34A]'}`}
-                  >
-                    <span className="truncate">{provB}</span>
-                    <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${provBOpen ? 'rotate-180 text-[#16A34A]' : ''}`} />
-                  </button>
-                  {provBOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-xl overflow-y-auto max-h-60 custom-scrollbar z-50">
-                      {displayProvinces.map(p => (
-                        <button 
-                          key={`B-${p.Province}`} 
-                          onClick={() => { setProvB(p.Province); setProvBOpen(false); }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${provB === p.Province ? 'bg-[#16A34A]/10 text-[#16A34A] font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'}`}
-                        >
-                          {p.Province}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="relative w-full flex-1 min-h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                    <PolarGrid stroke="#E5E7EB" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: '#6B7280' }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar name={provA} dataKey="A" stroke="#00B3DF" fill="#00B3DF" fillOpacity={0.5} />
-                    <Radar name={provB} dataKey="B" stroke="#16A34A" fill="#16A34A" fillOpacity={0.5} />
-                    <RechartsTooltip formatter={(value: number) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0.00'} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="w-full md:w-2/3 h-64 sm:h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                  <PolarGrid stroke="#D1D5DB" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontFamily: 'serif', fill: '#000' }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                  <Radar name={provA} dataKey="A" stroke={getTrafficLightColor(provAData.HousingScore)} fill={getTrafficLightColor(provAData.HousingScore)} fillOpacity={0.5} />
+                  <Radar name={provB} dataKey="B" stroke={getTrafficLightColor(provBData.HousingScore)} fill={getTrafficLightColor(provBData.HousingScore)} fillOpacity={0.5} />
+                  <RechartsTooltip formatter={(value: number) => value ? Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '0.00'} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderColor: '#111827', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#fff' }} />
+                </RadarChart>
+              </ResponsiveContainer>
+              <h4 className="text-center font-bold font-sans text-xs mt-4 uppercase">
+                {lang === 'en' ? 'Figure 2: Multi-Axis Performance Radar' : 'Gambar 2: Radar Kinerja Multi-Sumbu'}
+              </h4>
             </div>
+          </div>
+        </section>
 
-            {/* Top 5 Provinces */}
-            <div className="lg:col-span-4 bg-white p-6 xl:p-8 border border-gray-200 hover:shadow-sm transition-shadow flex flex-col animate-fade-in-up h-full" style={{ animationDelay: '0.2s' }}>
-              <div className="mb-4 border-b-2 border-gray-100 pb-4 shrink-0">
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Top 5 Provinces</h3>
-                <p className="text-[12px] text-gray-500 mt-1 uppercase tracking-widest line-clamp-2">Highest Housing Intelligence Score</p>
-              </div>
-              <div className="relative w-full flex-1 min-h-[250px]">
+        {/* Section 3: Rankings */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '3. Performance Extremes' : '3. Ekstremitas Kinerja'}
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="border border-gray-300 p-2 sm:p-4 bg-gray-50">
+              <h4 className="text-center font-bold font-sans text-xs mb-4 uppercase">
+                {lang === 'en' ? 'Figure 3: Top 5 Provinces' : 'Gambar 3: 5 Provinsi Teratas'}
+              </h4>
+              <div className="h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={topProvinces} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
-                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} domain={[0, 100]} />
-                    <YAxis dataKey="name" type="category" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#111827', fontWeight: 600 }} />
-                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
-                    <Bar dataKey="score" fill="#16A34A" barSize={24} radius={[0, 4, 4, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} domain={[0, 100]} />
+                    <YAxis dataKey="name" type="category" axisLine={{stroke: '#000'}} tickLine={false} tick={{ fontSize: 12, fill: '#000', fontFamily: 'serif' }} />
+                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderColor: '#111827', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#fff' }} formatter={(value: any) => [Number(value).toFixed(2)]} />
+                    <Bar dataKey="score" barSize={16} radius={[0, 4, 4, 0]}>
+                      {topProvinces.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getTrafficLightColor(entry.score)} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Bottom 5 Provinces */}
-            <div className="lg:col-span-4 bg-white p-6 xl:p-8 border border-gray-200 hover:shadow-sm transition-shadow flex flex-col animate-fade-in-up h-full" style={{ animationDelay: '0.3s' }}>
-              <div className="mb-4 border-b-2 border-gray-100 pb-4 shrink-0">
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Bottom 5 Provinces</h3>
-                <p className="text-[12px] text-gray-500 mt-1 uppercase tracking-widest line-clamp-2">Lowest Housing Intelligence Score</p>
-              </div>
-              <div className="relative w-full flex-1 min-h-[250px]">
+            <div className="border border-gray-300 p-2 sm:p-4 bg-gray-50">
+              <h4 className="text-center font-bold font-sans text-xs mb-4 uppercase">
+                {lang === 'en' ? 'Figure 4: Bottom 5 Provinces' : 'Gambar 4: 5 Provinsi Terbawah'}
+              </h4>
+              <div className="h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={bottomProvinces.reverse()} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
-                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#4B5563' }} domain={[0, 100]} />
-                    <YAxis dataKey="name" type="category" axisLine={{stroke: '#D1D5DB'}} tickLine={false} tick={{ fontSize: 13, fill: '#111827', fontWeight: 600 }} />
-                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#D1D5DB', borderRadius: 0, fontWeight: 600 }} formatter={(value: any, name: string) => [typeof value === 'number' ? value.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : value, name]} />
-                    <Bar dataKey="score" fill="#DC2626" barSize={24} radius={[0, 4, 4, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontFamily: 'serif' }} domain={[0, 100]} />
+                    <YAxis dataKey="name" type="category" axisLine={{stroke: '#000'}} tickLine={false} tick={{ fontSize: 12, fill: '#000', fontFamily: 'serif' }} />
+                    <RechartsTooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ backgroundColor: '#111827', color: '#fff', borderColor: '#111827', borderRadius: 0, fontWeight: 600 }} itemStyle={{ color: '#fff' }} formatter={(value: any) => [Number(value).toFixed(2)]} />
+                    <Bar dataKey="score" barSize={16} radius={[0, 4, 4, 0]}>
+                      {bottomProvinces.reverse().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getTrafficLightColor(entry.score)} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
-
-            {/* Benchmark Matrix (Heatmap) for ALL Provinces with Year Selector */}
-            <div className="lg:col-span-12 bg-white border border-gray-200 overflow-hidden flex flex-col hover:shadow-sm transition-shadow animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-              <div className="p-8 border-b-2 border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">Complete Province Benchmark Data</h3>
-                  <p className="text-[13px] text-gray-500 mt-1 uppercase tracking-widest">Housing Demand vs Supply & Mortgage Accessibility (All Provinces)</p>
-                </div>
-                
-                {/* Embedded Year Filter for this Specific Card */}
-                <div className="relative z-20">
-                  <span className="text-gray-400 text-[10px] uppercase tracking-widest font-bold mb-1 flex items-center gap-1"><Calendar size={12}/> Timeframe</span>
-                  <button 
-                    onClick={() => setYearOpen(!yearOpen)}
-                    className={`flex items-center justify-between min-w-[120px] bg-white text-gray-900 font-bold px-3 py-2 border border-gray-200 rounded-md focus:outline-none hover:border-primary transition-colors ${yearOpen ? 'ring-2 ring-primary/20 border-primary' : ''}`}
-                  >
-                    <span>{selectedYear}</span>
-                    <ChevronDown size={16} className={`text-gray-400 transition-transform ${yearOpen ? 'rotate-180 text-primary' : ''}`} />
-                  </button>
-                  {yearOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
-                      {YEARS.map(yr => (
-                        <button 
-                          key={yr} 
-                          onClick={() => { setSelectedYear(yr); setYearOpen(false); }}
-                          className={`w-full text-left px-4 py-2 text-sm font-bold transition-colors ${selectedYear === yr ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-primary'}`}
-                        >
-                          {yr}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex-1 p-8 overflow-x-auto">
-                <div className="max-h-[600px] overflow-y-auto custom-scrollbar border border-gray-100 rounded-md">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
-                      <tr>
-                        <th className="py-4 px-6 text-[12px] font-bold text-gray-500 uppercase tracking-widest bg-gray-50">Province</th>
-                        <th className="py-4 px-4 text-[12px] font-bold text-gray-500 uppercase tracking-widest text-center bg-gray-50">Housing Intelligence Score</th>
-                        <th className="py-4 px-4 text-[12px] font-bold text-gray-500 uppercase tracking-widest text-center bg-gray-50">Demand Index</th>
-                        <th className="py-4 px-4 text-[12px] font-bold text-gray-500 uppercase tracking-widest text-center bg-gray-50">Supply Index</th>
-                        <th className="py-4 px-4 text-[12px] font-bold text-gray-500 uppercase tracking-widest text-center bg-gray-50">Mortgage Access</th>
-                        <th className="py-4 px-4 text-[12px] font-bold text-gray-500 uppercase tracking-widest text-center bg-gray-50">Total Backlog (%)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {sortedByScore.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-3 px-6 font-bold text-gray-900">{row.Province}</td>
-                          <td className="py-2 px-4">
-                            <div className={`w-full py-1.5 rounded flex justify-center text-[13px] ${getPositiveColor(row.HousingScore, means.HousingScore)}`}>{row.HousingScore?.toFixed(1)}</div>
-                          </td>
-                          <td className="py-2 px-4">
-                            {/* Demand index pressure (High demand -> High pressure/worse) */}
-                            <div className={`w-full py-1.5 rounded flex justify-center text-[13px] ${getPositiveColor(100 - row.DemandIndex, 100 - means.DemandIndex)}`}>{row.DemandIndex?.toFixed(1)}</div>
-                          </td>
-                          <td className="py-2 px-4">
-                            <div className={`w-full py-1.5 rounded flex justify-center text-[13px] ${getPositiveColor(row.SupplyIndex, means.SupplyIndex)}`}>{row.SupplyIndex?.toFixed(1)}</div>
-                          </td>
-                          <td className="py-2 px-4">
-                            <div className={`w-full py-1.5 rounded flex justify-center text-[13px] ${getPositiveColor(row.MortgageAccessibility, means.MortgageAccessibility)}`}>{row.MortgageAccessibility?.toFixed(1)}</div>
-                          </td>
-                          <td className="py-2 px-4">
-                            <div className={`w-full py-1.5 rounded flex justify-center text-[13px] ${getNegativeColor(row.TotalBacklogPercent, means.TotalBacklogPercent)}`}>{row.TotalBacklogPercent?.toFixed(1)}%</div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
           </div>
-        </div>
+        </section>
+
+        {/* Section 4: Data Table */}
+        <section className="mb-12 print-avoid-break">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide border-b border-gray-300 pb-2 mb-6 break-words">
+            {lang === 'en' ? '4. Complete Province Benchmark Data' : '4. Data Tolok Ukur Provinsi Lengkap'}
+          </h2>
+          
+          <div className="overflow-x-auto border border-gray-300 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <table className="w-full text-xs md:text-sm text-left border-collapse">
+              <thead className="bg-black text-white uppercase text-[10px] md:text-xs">
+                <tr>
+                  <th className="py-3 px-4 border border-gray-300">{lang === 'en' ? 'Province' : 'Provinsi'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center">{lang === 'en' ? 'Overall Score' : 'Skor Keseluruhan'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center">{lang === 'en' ? 'Demand' : 'Permintaan'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center">{lang === 'en' ? 'Supply' : 'Pasokan'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center">{lang === 'en' ? 'Mortgage' : 'KPR'}</th>
+                  <th className="py-3 px-2 border border-gray-300 text-center">{lang === 'en' ? 'Backlog (%)' : 'Backlog (%)'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedByScore.map((row, idx) => (
+                  <tr key={idx} className="border-b border-gray-300 hover:bg-gray-50">
+                    <td className="py-2 px-4 border border-gray-300 font-bold">{row.Province}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{row.HousingScore?.toFixed(1)}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{row.DemandIndex?.toFixed(1)}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{row.SupplyIndex?.toFixed(1)}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{row.MortgageAccessibility?.toFixed(1)}</td>
+                    <td className="py-2 px-2 border border-gray-300 text-center font-mono">{row.TotalBacklogPercent?.toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
       </div>
     </div>
   );
