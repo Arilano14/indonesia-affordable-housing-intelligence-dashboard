@@ -24,10 +24,6 @@ This project was developed as an academic and professional portfolio to demonstr
 * ETL Pipeline Development
 * Data Warehousing Concepts
 
-The project is intended to showcase practical Business Intelligence skills suitable for graduate-level study and professional analytics environments.
-
----
-
 ## Key Questions Addressed
 
 IAHID is designed to answer questions such as:
@@ -415,18 +411,6 @@ The emphasis is placed on:
 * Analytical Storytelling
 
 ---
-
-## Academic Relevance
-
-This project demonstrates practical applications of:
-
-* Business Intelligence
-* Applied Analytics
-* Economic Analysis
-* Public Policy Analytics
-* Decision Support Systems
-
-and serves as a portfolio project suitable for graduate study applications, research-oriented programs, and Business Intelligence career pathways.
 
 ---
 
