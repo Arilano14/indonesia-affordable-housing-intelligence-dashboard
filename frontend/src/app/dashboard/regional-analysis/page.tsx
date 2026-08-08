@@ -120,13 +120,7 @@ export default function RegionalAnalysisPage() {
             </h1>
           </div>
           <div className="hidden sm:block">
-            <select 
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="bg-white border-2 border-black font-bold px-3 py-1 text-sm cursor-pointer outline-none font-sans"
-            >
-              {YEARS.map(y => <option key={y} value={y}>Data {y}</option>)}
-            </select>
+            {/* Year selection removed per user request */}
           </div>
         </div>
 
