@@ -118,8 +118,6 @@ Represents estimated housing shortages.
 
 Tracks residential property market performance over time.
 
----
-
 ## Dashboard Modules
 
 ### 1. Overview
